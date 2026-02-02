@@ -67,7 +67,7 @@
 使用如下命令克隆该项目到本地:
 
 ```
-git clone https://github.com/lianghaoyu99/MuSc.git
+git clone https://github.com/lianghaoyu99/MuSc-WG.git
 ```
 
 创建虚拟环境:
@@ -145,7 +145,11 @@ ablation_wt_type = 'db1'        # 选择小波基：'db1' (Haar), 'db2', 'sym2',
 ablation_padding = 'reflect'    # 选择padding模式：'reflect', 'zeros', 'replicate'
 ablation_level0  = False        # 是否包含原始特征
 ablation_intra_weight = False    # 自评分，无效，保持False
-ablation_gamma   = 4.0          # 伽马校正的参数，设为1时即关闭 (e.g., 2.0 - 4.0)
+ablation_gamma   = 2.0          # 伽马校正的参数，设为1时即关闭 (e.g., 2.0 - 4.0)
+# Band-Pass / High-Pass Configuration
+ablation_use_details = True     # 带通开关，是否保留LH, HL, HH细节
+ablation_detail_start = 1       # 从第1层开始保留细节，0表示保留所有细节
+ablation_keep_ll = True         # True: 保留低频 False: 仅保留高频细节
 
 # print(f"Using Original LNAMD with r={r}, intra_weight={ablation_intra_weight}, gamma={ablation_gamma}")
 # LNAMD_r = LNAMD(device=self.device, r=r, feature_dim=feature_dim, feature_layer=self.features_list)  # 如需切换原版LNAMD则取消注释这两行，并注释下面两行，反之亦然。

@@ -1,0 +1,26 @@
+# User requested ignores (Output & Data)
+output/
+data/
+
+# Python standard ignores
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+
+# IDE & Editor files
+.idea/
+.vscode/
+.trae/
+*.swp
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Large files / Archives
+WTConv-main.zip
+*.log

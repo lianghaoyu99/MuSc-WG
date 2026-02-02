@@ -1,164 +1,96 @@
 # ✨MuSc (ICLR 2024)✨
 
-**This is an official PyTorch implementation for "MuSc : Zero-Shot Industrial Anomaly Classification and Segmentation with Mutual Scoring of the Unlabeled Images" (MuSc)**
+**论文“MuSc: Zero-Shot Industrial Anomaly Classification and Segmentation with Mutual Scoring of the Unlabeled Images”的官方复现代码**
 
-Authors:  [Xurui Li](https://github.com/xrli-U)<sup>1*</sup> | [Ziming Huang](https://github.com/ZimingHuang1)<sup>1*</sup> | [Feng Xue](https://xuefeng-cvr.github.io/)<sup>3</sup> | [Yu Zhou](https://github.com/zhouyu-hust)<sup>1,2</sup>
+作者:  [李煦蕤](https://github.com/xrli-U)<sup>1*</sup> | [黄子鸣](https://github.com/ZimingHuang1)<sup>1*</sup> | [薛峰](https://xuefeng-cvr.github.io/)<sup>3</sup> | [周瑜](https://github.com/zhouyu-hust)<sup>1,2</sup>
 
-Institutions: <sup>1</sup>Huazhong University of Science and Technology | <sup>2</sup>Wuhan JingCe Electronic Group Co.,LTD | <sup>3</sup>University of Trento
+单位: <sup>1</sup>华中科技大学 | <sup>2</sup>武汉精测电子集团股份有限公司 | <sup>3</sup>特伦托大学
 
-### 🧐  [Arxiv](https://arxiv.org/pdf/2401.16753.pdf) | [OpenReview](https://openreview.net/forum?id=AHgc5SMdtd)
+### 🧐 论文下载地址： [Arxiv](https://arxiv.org/pdf/2401.16753.pdf) | [OpenReview](https://openreview.net/forum?id=AHgc5SMdtd)
 
-### 📖 Chinese [README](./README_cn.md)
-
-## <a href='#all_catelogue'>**Go to Catalogue**</a>
-
-## 🙈TODO list:
-- ⬜️ Using some strategies to reduce the inference time per image from 955.3ms to **249.8ms**.
-- ⬜️ Compatibility with more industrial datasets.
-- ⬜️ Compatibility with more visual backbones, e.g. [Vision Mamba](https://github.com/hustvl/Vim).
-
-
-## 📣Updates:
-***04/11/2024***
-1. The comparisons with the zero/few-shot methods in CVPR 2024 have been added to <a href='#compare_sota'>Compare with SOTA k-shot Methods.</a>
-2. Fixed some bugs in `models/backbone/_backbones.py`.
-
-***03/22/2024***
-1. The supported codes for [BTAD](https://ieeexplore.ieee.org/abstract/document/9576231) dataset are provided.
-2. Some codes are modified to support larger *batch_size*.
-3. Some codes are optimized to obtain faster speeds.
-4. <a href='#results_backbones'>Results of different backbones</a> in MVTec AD, VisA and BTAD datasets are provided.
-5. <a href='#results_datasets'>The detailed results of different datasets</a> are provided.
-6. <a href='#inference_time'>The inference time of different backbones</a> is provided.
-7. <a href='#compare_sota'>The comparisons with SOTA zero/few-shot methods</a> are provided. This table will be updated continuously.
-8. We summarize the <a href='#FAQ'> frequently asked questions </a> from users when using MuSc, and give the answers.
-9. We add [README](./README_cn.md) in Chinese.
-
-***02/01/2024***
-
-Initial commits:
-
-1. The complete code of our method **MuSc** in [paper](https://arxiv.org/pdf/2401.16753.pdf) is released.
-2. This code is compatible with image encoder (ViT) of [CLIP](https://github.com/mlfoundations/open_clip) and ViT pre-trained with [DINO](https://github.com/facebookresearch/dino)/[DINO_v2](https://github.com/facebookresearch/dinov2).
-
-<span id='compare_sota'/>
-
-## 🎖️Compare with SOTA *k*-shot methods <a href='#all_catelogue'>[Go to Catalogue]</a>
-We will **continuously update** the following table to compare our MuSc with the newest zero-shot and few-shot methods.
-"-" indicates that the authors did not measure this metric in their paper.
-
-### MVTec AD
-
-|                                          |                    |         | Classification |            |        | Segmentation |             |         |          |
-| :--------------------------------------: | :----------------: | :-----: | :------------: | :--------: | :----: | :----------: | :---------: | :-----: | :------: |
-|                 Methods                  |       Venue        | Setting |   AUROC-cls    | F1-max-cls | AP-cls |  AUROC-segm  | F1-max-segm | AP-segm | PRO-segm |
-|                MuSc(ours)                |     ICLR 2024      | 0-shot  |      97.8      |    97.5    |  99.1  |     97.3     |    62.6     |  62.7   |   93.8   |
-| [RegAD](https://link.springer.com/chapter/10.1007/978-3-031-20053-3_18) |     ECCV 2022      | 4-shot  |      89.1      |    92.4    |  94.9  |     96.2     |    51.7     |  48.3   |   88.0   |
-| [GraphCore](https://openreview.net/forum?id=xzmqxHdZAwO) |     ICLR 2023      | 4-shot  |      92.9      |     -      |   -    |     97.4     |      -      |    -    |    -     |
-| [WinCLIP](https://openaccess.thecvf.com/content/CVPR2023/papers/Jeong_WinCLIP_Zero-Few-Shot_Anomaly_Classification_and_Segmentation_CVPR_2023_paper.pdf) |     CVPR 2023      | 0-shot  |      91.8      |    92.9    |  96.5  |     85.1     |    31.7     |    -    |   64.6   |
-| [WinCLIP](https://openaccess.thecvf.com/content/CVPR2023/papers/Jeong_WinCLIP_Zero-Few-Shot_Anomaly_Classification_and_Segmentation_CVPR_2023_paper.pdf) |     CVPR 2023      | 4-shot  |      95.2      |    94.7    |  97.3  |     96.2     |    51.7     |    -    |   88.0   |
-| [APRIL-GAN](https://arxiv.org/pdf/2305.17382.pdf) | CVPR Workshop 2023 | 0-shot  |      86.1      |    90.4    |  93.5  |     87.6     |    43.3     |  40.8   |   44.0   |
-| [APRIL-GAN](https://arxiv.org/pdf/2305.17382.pdf) | CVPR Workshop 2023 | 4-shot  |      92.8      |    92.8    |  96.3  |     95.9     |    56.9     |  54.5   |   91.8   |
-| [FastRecon](https://openaccess.thecvf.com/content/ICCV2023/papers/Fang_FastRecon_Few-shot_Industrial_Anomaly_Detection_via_Fast_Feature_Reconstruction_ICCV_2023_paper.pdf) |     ICCV 2023      | 4-shot  |      94.2      |     -      |   -    |     97.0     |      -      |    -    |    -     |
-| [ACR](https://proceedings.neurips.cc/paper_files/paper/2023/file/8078e8c3055303a884ffae2d3ea00338-Paper-Conference.pdf) |    NeurIPS 2023    | 0-shot  |      85.8      |    91.3    |  92.9  |     92.5     |    44.2     |  38.9   |   72.7   |
-| [RegAD+Adversarial Loss](https://papers.bmvc2023.org/0202.pdf) |     BMVC 2023      | 8-shot  |      91.9      |     -      |   -    |     96.9     |      -      |    -    |    -     |
-| [PACKD](https://papers.bmvc2023.org/0259.pdf) |     BMVC 2023      | 8-shot  |      95.3      |     -      |   -    |     97.3     |      -      |    -    |    -     |
-| [PromptAD](https://openaccess.thecvf.com/content/WACV2024/papers/Li_PromptAD_Zero-Shot_Anomaly_Detection_Using_Text_Prompts_WACV_2024_paper.pdf) |     WACV 2024      | 0-shot  |      90.8      |     -      |   -    |     92.1     |    36.2     |    -    |   72.8   |
-| [AnomalyCLIP](https://openreview.net/forum?id=buC4E91xZE) |     ICLR 2024      | 0-shot  |      91.5      |     -      |  96.2  |     91.1     |      -      |    -    |   81.4   |
-| [InCTRL](https://arxiv.org/pdf/2403.06495.pdf) |     CVPR 2024      | 8-shot  |      95.3      |     -      |   -    |      -       |      -      |    -    |    -     |
-| [MVFA-AD](https://arxiv.org/pdf/2403.12570.pdf) |     CVPR 2024      | 4-shot  |      96.2      |     -      |   -    |     96.3     |      -      |    -    |    -     |
-| [PromptAD](https://arxiv.org/pdf/2404.05231.pdf) |     CVPR 2024      | 4-shot  |      96.6      |     -      |   -    |     96.5     |      -      |    -    |    -     |
-
-### VisA
-
-|                                          |                    |         | Classification |            |        | Segmentation |             |         |          |
-| :--------------------------------------: | :----------------: | :-----: | :------------: | :--------: | :----: | :----------: | :---------: | :-----: | :------: |
-|                 Methods                  |       Venue        | Setting |   AUROC-cls    | F1-max-cls | AP-cls |  AUROC-segm  | F1-max-segm | AP-segm | PRO-segm |
-|                MuSc(ours)                |     ICLR 2024      | 0-shot  |      92.8      |    89.5    |  93.5  |     98.8     |    48.8     |  45.1   |   92.7   |
-| [WinCLIP](https://openaccess.thecvf.com/content/CVPR2023/papers/Jeong_WinCLIP_Zero-Few-Shot_Anomaly_Classification_and_Segmentation_CVPR_2023_paper.pdf) |     CVPR 2023      | 0-shot  |      78.1      |    79.0    |  81.2  |     79.6     |    14.8     |    -    |   56.8   |
-| [WinCLIP](https://openaccess.thecvf.com/content/CVPR2023/papers/Jeong_WinCLIP_Zero-Few-Shot_Anomaly_Classification_and_Segmentation_CVPR_2023_paper.pdf) |     CVPR 2023      | 4-shot  |      87.3      |    84.2    |  88.8  |     97.2     |    47.0     |    -    |   87.6   |
-| [APRIL-GAN](https://arxiv.org/pdf/2305.17382.pdf) | CVPR Workshop 2023 | 0-shot  |      78.0      |    78.7    |  81.4  |     94.2     |    32.3     |  25.7   |   86.8   |
-| [APRIL-GAN](https://arxiv.org/pdf/2305.17382.pdf) | CVPR Workshop 2023 | 4-shot  |      92.6      |    88.4    |  94.5  |     96.2     |    40.0     |  32.2   |   90.2   |
-| [PACKD](https://papers.bmvc2023.org/0259.pdf) |     BMVC 2023      | 8-shot  |      87.5      |     -      |   -    |     97.9     |      -      |    -    |    -     |
-| [AnomalyCLIP](https://openreview.net/forum?id=buC4E91xZE) |     ICLR 2024      | 0-shot  |      82.1      |     -      |  85.4  |     95.5     |      -      |    -    |   87.0   |
-| [InCTRL](https://arxiv.org/pdf/2403.06495.pdf) |     CVPR 2024      | 8-shot  |      88.7      |     -      |   -    |      -       |      -      |    -    |    -     |
-| [PromptAD](https://arxiv.org/pdf/2404.05231.pdf) |     CVPR 2024      | 4-shot  |      89.1      |     -      |   -    |     97.4     |      -      |    -    |    -     |
+## <a href='#all_catelogue'>**转到目录**</a>
 
 <span id='all_catelogue'/>
 
-## 📖Catalogue
+## 📖目录
 
-* <a href='#abstract'>1. Abstract</a>
-* <a href='#setup'>2. Environment setup</a>
-* <a href='#datasets'>3. Datasets download</a>
-  * <a href='#datatets_mvtec_ad'>MVTec AD</a>
-  * <a href='#datatets_visa'>VisA</a>
-  * <a href='#datatets_btad'>BTAD</a>
-* <a href='#run_musc'>4. Run MuSc</a>
-* <a href='#rscin'>5. Run RsCIN</a>
-* <a href='#results_datasets'>6. Results of different datasets</a>
-* <a href='#results_backbones'>7. Results of different backbones</a>
-* <a href='#inference_time'>8. Inference time</a>
-* <a href='#FAQ'>9. Frequently Asked Questions</a>
-* <a href='#citation'>10. Citation</a>
-* <a href='#thanks'>11. Thanks</a>
-* <a href='#license'>12. License</a>
+* <a href='#abstract'>1. 论文介绍</a>
+* <a href='#setup'>2. 代码运行环境配置</a>
+* <a href='#datasets'>3. 数据集下载</a>
+* <a href='#run_musc'>4. 运行代码</a>
+* <a href='#rscin'>5. 单独运行RsCIN分类优化模块</a>
+* <a href='#results_datasets'>6. 在不同数据上的结果</a>
+* <a href='#results_backbones'>7. 使用不同特征提取器的结果</a>
+* <a href='#inference_time'>8. 推理时间</a>
+* <a href='#FAQ'>9. 常见问题</a>
+* <a href='#citation'>10. 引用格式</a>
+* <a href='#thanks'>11. 致谢</a>
+* <a href='#license'>12. 使用许可</a>
 
 <span id='abstract'/>
 
-## 👇Abstract: <a href='#all_catelogue'>[Back to Catalogue]</a>
+## 👇论文介绍: <a href='#all_catelogue'>[返回目录]</a>
 
-This paper studies zero-shot anomaly classification (AC) and segmentation (AS) in industrial vision. We reveal that the abundant normal and abnormal cues implicit in unlabeled test images can be exploited for anomaly determination, which is ignored by prior methods. Our key observation is that for the industrial product images, the normal image patches could find a relatively large number of similar patches in other unlabeled images, while the abnormal ones only have a few similar patches. 
+该论文研究了工业视觉领域中的零样本异常检测和分割任务。
+零样本，即不使用任何与测试图像同源的有标注图像，以往的方法基于CLIP的图文对齐能力和SAM的提示工程，忽略了无标签测试图像本身蕴含的丰富正常先验信息。
+本论文的关键发现在于工业产品图像中，图像的正常区域可以在其他无标注的图像中找到相对大量的相似的正常区域，而异常区域只能找到少量相似的区域。
+我们利用这种特性设计了一种新的零样本异常检测/分割方法MuSc，该方法的核心在于对无标注的图像进行相互打分，正常区域会被赋予较低的分数，异常区域会被赋予较高的分数。
+该方法不需要任何辅助数据集进行训练，也不需要额外的文本模态进行提示。
 
-We leverage such a discriminative characteristic to design a novel zero-shot AC/AS method by Mutual Scoring (MuSc) of the unlabeled images, which does not need any training or prompts. Specifically, we perform Local Neighborhood Aggregation with Multiple Degrees (**LNAMD**) to obtain the patch features that are capable of representing anomalies in varying sizes. Then we propose the Mutual Scoring Mechanism (**MSM**) to leverage the unlabeled test images to assign the anomaly score to each other. Furthermore, we present an optimization approach named Re-scoring with Constrained Image-level Neighborhood (**RsCIN**) for image-level anomaly classification to suppress the false positives caused by noises in normal images.
+具体而言，我们首先使用多聚合度邻域聚合模块(**LNAMD**)来获取能够表征不同大小缺陷的区域级特征。
+然后我们提出了互打分模块(**MSM**)，使用无标注图像进行相互打分，分数越高表示该图像区域异常概率越大。
+最后，我们提出了一个分类优化模块，名为图像级受限邻域的重打分(**RsCIN**)，来优化分类结果，减少噪声带来的误检。
 
-The superior performance on the challenging MVTec AD and VisA datasets demonstrates the effectiveness of our approach. Compared with the state-of-the-art zero-shot approaches, MuSc achieves a $\textbf{21.1}$\% PRO absolute gain (from 72.7\% to 93.8\%) on MVTec AD, a $\textbf{19.4}$\% pixel-AP gain and a $\textbf{14.7}$\% pixel-AUROC gain on VisA. In addition, our zero-shot approach outperforms most of the few-shot approaches and is comparable to some one-class methods.
+我们通过在MVTec AD和VisA数据集上的优异性能证明了我们方法的有效性，与当前SOTA零样本异常检测方法相比，MuSc在MVTec AD数据集上实现了**21.1**%的PRO提升(从72.7％到93.8％)，在VisA上实现了**19.4**%的AP分割提升和**14.7**%的AUROC分割提升。
+此外，我们的零样本方法甚至优于当前大多数少样本方法，并且与一些无监督方法相媲美。
 
 ![pipline](./assets/pipeline.png) 
 
-## 😊Compare with other 0-shot methods
+## 😊与其它零样本异常检测方法比较
 
 ![Compare_0](./assets/compare_zero_shot.png) 
 
-## 😊Compare with other 4-shot methods
+## 😊与其它少样本异常检测方法比较
 
 ![Compare_4](./assets/compare_few_shot.png) 
 
 <span id='setup'/>
 
-## 🎯Setup: <a href='#all_catelogue'>[Back to Catalogue]</a>
+## 🎯代码环境配置: <a href='#all_catelogue'>[返回目录]</a>
 
-### Environment:
+### 环境:
 
 - Python 3.8
 - CUDA 11.7
 - PyTorch 2.0.1
 
-Clone the repository locally:
+使用如下命令克隆该项目到本地:
 
 ```
-git clone https://github.com/xrli-U/MuSc.git
+git clone https://github.com/lianghaoyu99/MuSc.git
 ```
 
-Create virtual environment:
+创建虚拟环境:
 
 ```
 conda create --name musc python=3.8
 conda activate musc
 ```
 
-Install the required packages:
+安装依赖库:
 
 ```
-pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2
+pip install torch==2.0.1+cu117 torchvision==0.15.2+cu117 torchaudio==2.0.2+cu117 --index-url https://download.pytorch.org/whl/cu117
 pip install -r requirements.txt
 ```
 
 <span id='datasets'/>
 
-## 👇Datasets Download: <a href='#all_catelogue'>[Back to Catalogue]</a>
+## 👇数据集下载: <a href='#all_catelogue'>[返回目录]</a>
 
-Put all the datasets in `./data` folder.
+点击下载MVTec AD数据集[mvtec-musc.zip](https://pan.baidu.com/s/1cIsO7YHRv3XEVXk5CeN-gQ?pwd=xgfh)，提取码: xgfh 
+
+把数据集解压后放在项目根目录下。
 
 <span id='datatets_mvtec_ad'/>
 
@@ -175,128 +107,68 @@ data
 |-----|--- ...
 ```
 
-<span id='datatets_visa'/>
-
-### [VisA](https://amazon-visual-anomaly.s3.us-west-2.amazonaws.com/VisA_20220922.tar)
-
-```
-data
-|----visa
-|-----|-- split_csv
-|-----|-----|--- 1cls.csv
-|-----|-----|--- ...
-|-----|-- candle
-|-----|-----|--- Data
-|-----|-----|-----|----- Images
-|-----|-----|-----|--------|------ Anomaly 
-|-----|-----|-----|--------|------ Normal 
-|-----|-----|-----|----- Masks
-|-----|-----|-----|--------|------ Anomaly 
-|-----|-----|--- image_anno.csv
-|-----|-- capsules
-|-----|--- ...
-```
-
-VisA dataset need to be preprocessed to separate the train set from the test set.
-
-```
-python ./datasets/visa_preprocess.py
-```
-
-<span id='datatets_btad'/>
-
-### [BTAD](https://github.com/pankajmishra000/VT-ADL)
-
-```
-data
-|---btad
-|-----|--- 01
-|-----|-----|----- ground_truth
-|-----|-----|----- test
-|-----|-----|----- train
-|-----|--- 02
-|-----|--- ...
-```
-
 <span id='run_musc'/>
 
-## 💎Run MuSc: <a href='#all_catelogue'>[Back to Catalogue]</a>
+## 💎运行主程序: <a href='#all_catelogue'>[返回目录]</a>
 
-We provide two ways to run our code.
-
-### python
+### python运行
 
 ```
 python examples/musc_main.py
 ```
-Follow the configuration in `./configs/musc.yaml`.
+遵循`./configs/musc.yaml`中的设置。
 
-### script
+关键参数如下：
 
+- `--device`: GPU_id。
+- `--data_path`: 数据集路径。
+- `--dataset_name`: 数据集名称。
+- `--class_name`: 进行测试的类别，如果该参数设置为`ALL`，将对所有的类别进行测试；##如果要对单一类别进行测试可设置对应的类别名称如`transistor`、`wood`等。
+- `--backbone_name`: 特征提取器的名称，我们的代码兼容CLIP，DINO和DINO_v2，详见`configs/musc.yaml`。
+- `--pretrained`: 选择预训练的CLIP模型，可选`openai`，`laion400m_e31`和`laion400m_e32`。
+- `--feature_layers`: backbone中用于提取特征的层。
+- `--img_resize`: 输入到模型中的图像大小。
+- `--divide_num`: 将完整的无标签测试集划分为子集的数量。
+- `--r_list`: LNAMD模块中的多个聚合度。
+- `--output_dir`: 保存该方法预测的异常概率图和检测分割指标的路径。
+- `--vis`: 是否保存该方法预测的异常概率图。
+- `--vis_type`: 可在`single_norm`和`whole_norm`中进行选择，`single_norm`意思是将每张异常概率图进行归一化后再可视化，`whole_norm`意思是将全部异常概率图统一进行归一化后再可视化。
+- `--save_excel`: 是否保存该方法异常检测和分割的指标。
+
+### 针对LNAMD和MSM的修改
+
+在`./models/musc.py`中的调用
 ```
-sh scripts/musc.sh
-```
-The configuration in the script `musc.sh` takes precedence.
+# --- ABLATION STUDY CONFIGURATION ---  # 配置区，针对WTConv的参数主要在这里修改
+# Change these values to test different settings:
+ablation_wt_type = 'db1'        # 选择小波基：'db1' (Haar), 'db2', 'sym2', 'coif1', etc.
+ablation_padding = 'reflect'    # 选择padding模式：'reflect', 'zeros', 'replicate'
+ablation_level0  = False        # 是否包含原始特征
+ablation_intra_weight = False    # 自评分，无效，保持False
+ablation_gamma   = 4.0          # 伽马校正的参数，设为1时即关闭 (e.g., 2.0 - 4.0)
 
-The key arguments of the script are as follows:
+# print(f"Using Original LNAMD with r={r}, intra_weight={ablation_intra_weight}, gamma={ablation_gamma}")
+# LNAMD_r = LNAMD(device=self.device, r=r, feature_dim=feature_dim, feature_layer=self.features_list)  # 如需切换原版LNAMD则取消注释这两行，并注释下面两行，反之亦然。
 
-- `--device`: GPU_id.
-- `--data_path`: The directory of datasets.
-- `--dataset_name`: Dataset name.
-- `--class_name`: Category to be tested. If the parameter is set to `ALL`, all the categories are tested.
-- `--backbone_name`: Feature exractor name. Our code is compatible with CLIP, DINO and DINO_v2. For more details, see `configs/musc.yaml`.
-- `--pretrained`: Pretrained CLIP model. `openai`, `laion400m_e31`, and `laion400m_e32` are optional.
-- `--feature_layers`: The layers for extracting features in backbone(ViT).
-- `--img_resize`: The size of the image inputted into the model.
-- `--divide_num`: The number of subsets the whole test set is divided into.
-- `--r_list`: The aggregation degrees of our LNAMD module.
-- `--output_dir`: The directory that saves the anomaly prediction maps and metrics. This directory will be automatically created.
-- `--vis`: Whether to save the anomaly prediction maps.
-- `--vis_type`: Choose between `single_norm` and `whole_norm`. This means whether to normalize a single anomaly map or all of them together when visualizing.
-- `--save_excel`: Whether to save anomaly classification and segmentation results (metrics).
-
-<span id='rscin'/>
-
-## 💎Classification optimization (RsCIN): <a href='#all_catelogue'>[Back to Catalogue]</a>
-
-We provide additional code in `./models/RsCIN_features` folder to optimize the classification results of other methods using our RsCIN module. We use **ViT-large-14-336 of CLIP** to extract the image features of the MVTec AD and VisA datasets and store them in `mvtec_ad_cls.dat` and `visa_cls.dat` respectively. We show how to use them in `./models/RsCIN_features/RsCIN.py`.
-
-### Example
-
-Before using our RsCIN module, move `RsCIN.py`, `mvtec_ad_cls.dat` and `visa_cls.dat` to your project directory.
-
-```
-import numpy as np
-from RsCIN import Mobile_RsCIN
-
-classification_results = np.random.rand(83) # the classification results of your method.
-dataset_name = 'mvtec_ad' # dataset name
-class_name = 'bottle' # category name in the above dataset
-optimized_classification_results = Mobile_RsCIN(classification_results, dataset_name=dataset_name, class_name=class_name)
+print(f"Using WTConvLNAMDStatic with r={r}, wt={ablation_wt_type}, pad={ablation_padding}, level0={ablation_level0}, intra_weight={ablation_intra_weight}, gamma={ablation_gamma}")
+LNAMD_r = WTConvLNAMDStatic(device=self.device, feature_dim=feature_dim, feature_layer=self.features_list, r=r,
+                            wt_type=ablation_wt_type, padding_mode=ablation_padding, include_level0=ablation_level0)  # WTConv的入口
 ```
 
-The `optimized_classification_results` are the anomaly classification scores optimized by our RsCIN module.
+原版LNAMD目前已替换成WTConv模块`./models/modules/WTConvStatic.py`，可以在这个模块上进行改进，入口即上面一行的代码。
 
-### Apply to the custom dataset
-
-You can extract the image features of each image in the custom dataset, and store them in the variable `cls_tokens`.
-The multiple window sizes in the Multi-window Mask Operation can be adjusted by the value of `k_list`.
-
+原版MSM模块`./models/modules/_MSM.py`目前已引入伽马校正，可以在此模块上进行改进，入口在`./models/musc.py`中下面这行代码。
 ```
-import numpy as np
-from RsCIN import Mobile_RsCIN
-
-classification_results = np.random.rand(83) # the classification results of your method.
-cls_tokens = np.random.rand(83, 768)  # shape[N, C] the image features, N is the number of images
-k_list = [2, 3] # the multiple window sizes in the Multi-window Mask Operation
-optimized_classification_results = Mobile_RsCIN(classification_results, k_list=k_list, cls_tokens=cls_tokens)
+anomaly_maps_msm = MSM(Z=Z, device=self.device, topmin_min=0, topmin_max=0.3, 
+                                           use_intra_weight=ablation_intra_weight, gamma=ablation_gamma)  # 调用MSM算法生成异常图（同一层互相计算）
 ```
+
 
 <span id='results_datasets'/>
 
-## 🎖️Results of different datasets: <a href='#all_catelogue'>[Back to Catalogue]</a>
+## 🎖️不同数据集的结果: <a href='#all_catelogue'>[返回目录]</a>
 
-All the results are implemented by the default settings in our paper.
+以下所有的结果均按照论文中的默认设置复现。
 
 ### MVTec AD
 
@@ -320,42 +192,12 @@ All the results are implemented by the default settings in our paper.
 |   zipper   |     99.84      |   99.17    | 99.96  |    98.40     |    62.48    |  61.89  |  94.46   |
 |    mean    |     97.77      |   97.37    | 99.07  |    97.11     |    62.16    |  62.26  |  93.45   |
 
-### VisA
-
-|            | Classification |            |        | Segmentation |             |         |          |
-| :--------: | :------------: | :--------: | :----: | :----------: | :---------: | :-----: | :------: |
-|  Category  |   AUROC-cls    | F1-max-cls | AP-cls |  AUROC-segm  | F1-max-segm | AP-segm | PRO-segm |
-|   candle   |     96.55      |   91.26    | 96.45  |    99.36     |    39.56    |  28.36  |  97.62   |
-|  capsules  |     88.62      |   86.43    | 93.77  |    98.71     |    50.85    |  43.90  |  88.20   |
-|   cashew   |     98.54      |   95.57    | 99.30  |    99.33     |    74.88    |  77.63  |  94.30   |
-| chewinggum |     98.42      |   96.45    | 99.30  |    99.54     |    61.33    |  61.21  |  88.39   |
-|   fryum    |     98.64      |   97.44    | 99.43  |    99.43     |    58.13    |  50.43  |  94.38   |
-| macaroni1  |     89.33      |   82.76    | 88.64  |    99.51     |    21.90    |  15.25  |  96.37   |
-| macaroni2  |     68.03      |   69.96    | 67.37  |    97.14     |    11.06    |  3.91   |  88.84   |
-|    pcb1    |     89.28      |   84.36    | 89.89  |    99.50     |    80.49    |  88.36  |  92.76   |
-|    pcb2    |     93.20      |   88.66    | 94.46  |    97.39     |    34.38    |  21.86  |  86.06   |
-|    pcb3    |     93.52      |   86.92    | 93.48  |    98.05     |    40.23    |  41.03  |  92.32   |
-|    pcb4    |     98.43      |   92.89    | 98.47  |    98.70     |    46.38    |  44.72  |  92.66   |
-| pipe_fryum |     98.34      |   96.04    | 99.16  |    99.40     |    67.56    |  67.90  |  97.32   |
-|    mean    |     92.57      |   89.06    | 93.31  |    98.71     |    48.90    |  45.38  |  92.43   |
-
-### BTAD
-
-|          | Classification |            |        | Segmentation |             |         |          |
-| :------: | :------------: | :--------: | :----: | :----------: | :---------: | :-----: | :------: |
-| Category |   AUROC-cls    | F1-max-cls | AP-cls |  AUROC-segm  | F1-max-segm | AP-segm | PRO-segm |
-|    01    |     98.74      |   97.96    | 99.53  |    97.49     |    59.73    |  58.76  |  85.05   |
-|    02    |     90.23      |   95.38    | 98.41  |    95.36     |    58.20    |  55.16  |  68.64   |
-|    03    |     99.52      |   88.37    | 95.62  |    99.20     |    55.64    |  57.53  |  96.62   |
-|   mean   |     96.16      |   93.90    | 97.85  |    97.35     |    57.86    |  57.15  |  83.43   |
-
 <span id='results_backbones'/>
 
-## 🎖️Results of different backbones: <a href='#all_catelogue'>[Back to Catalogue]</a>
+## 🎖️使用不同特征提取器的结果: <a href='#all_catelogue'>[返回目录]</a>
 
-The default backbone (feature extractor) in our paper is ViT-large-14-336 of CLIP.
-We also provide the supported codes for other image encoder of CLIP, DINO and DINO_v2.
-For more details, see `configs/musc.yaml`.
+我们论文中使用的默认特征提取器是CLIP的ViT-large-14-336。
+我们还提供了CLIP、DINO和DINO_v2的vision transformer作为特征提取器的运行程序，具体信息详见`configs/musc.yaml`。
 
 ### MVTec AD
 
@@ -379,58 +221,12 @@ For more details, see `configs/musc.yaml`.
 |   dinov2_vitl14   |   DINO_v2    |    336     |     96.84      |   97.45    | 98.68  |    98.17     |    61.77    |  61.21  |  94.62   |
 |   dinov2_vitl14   |   DINO_v2    |    518     |     97.08      |   97.13    | 98.82  |    98.34     |    66.15    |  67.39  |  96.16   |
 
-
-### VisA
-
-|                   |              |            | Classification |            |        | Segmentation |             |         |          |
-| :---------------: | :----------: | :--------: | :------------: | :--------: | :----: | :----------: | :---------: | :-----: | :------: |
-|     Backbones     | Pre-training | image size |   AUROC-cls    | F1-max-cls | AP-cls |  AUROC-segm  | F1-max-segm | AP-segm | PRO-segm |
-|     ViT-B-32      |     CLIP     |    256     |     72.95      |   76.90    | 77.68  |    89.30     |    25.93    |  20.68  |  50.95   |
-|     ViT-B-32      |     CLIP     |    512     |     77.82      |   80.20    | 81.01  |    96.06     |    34.72    |  30.20  |  73.08   |
-|     ViT-B-16      |     CLIP     |    256     |     81.44      |   80.86    | 83.84  |    95.97     |    36.72    |  31.81  |  73.48   |
-|     ViT-B-16      |     CLIP     |    512     |     86.48      |   84.12    | 88.05  |    97.98     |    42.21    |  37.29  |  85.10   |
-| ViT-B-16-plus-240 |     CLIP     |    240     |     82.62      |   81.61    | 85.05  |    96.11     |    37.84    |  33.43  |  72.37   |
-| ViT-B-16-plus-240 |     CLIP     |    512     |     86.72      |   84.22    | 89.41  |    97.95     |    43.27    |  37.68  |  83.52   |
-|     ViT-L-14      |     CLIP     |    336     |     88.38      |   85.23    | 89.77  |    98.32     |    44.67    |  40.42  |  87.80   |
-|     ViT-L-14      |     CLIP     |    518     |     90.86      |   87.75    | 91.66  |    98.45     |    45.74    |  42.09  |  89.93   |
-|   ViT-L-14-336    |     CLIP     |    336     |     88.61      |   85.31    | 90.00  |    98.53     |    45.10    |  40.92  |  89.35   |
-|   ViT-L-14-336    |     CLIP     |    518     |     92.57      |   89.06    | 93.31  |    98.71     |    48.90    |  45.38  |  92.43   |
-|  dino_vitbase16   |     DINO     |    256     |     78.21      |   80.12    | 81.11  |    95.74     |    36.81    |  32.84  |  70.21   |
-|  dino_vitbase16   |     DINO     |    512     |     84.11      |   83.52    | 85.91  |    97.74     |    42.86    |  38.27  |  83.00   |
-|   dinov2_vitb14   |   DINO_v2    |    336     |     87.65      |   86.24    | 88.51  |    97.80     |    41.68    |  37.06  |  85.01   |
-|   dinov2_vitb14   |   DINO_v2    |    518     |     90.25      |   87.48    | 90.86  |    98.66     |    45.56    |  41.23  |  91.80   |
-|   dinov2_vitl14   |   DINO_v2    |    336     |     90.18      |   88.47    | 90.56  |    98.38     |    43.84    |  38.74  |  88.38   |
-|   dinov2_vitl14   |   DINO_v2    |    518     |     91.73      |   89.20    | 92.27  |    98.78     |    47.12    |  42.79  |  92.40   |
-
-
-### BTAD
-
-|                   |              |            | Classification |            |        | Segmentation |             |         |          |
-| :---------------: | :----------: | :--------: | :------------: | :--------: | :----: | :----------: | :---------: | :-----: | :------: |
-|     Backbones     | Pre-training | image size |   AUROC-cls    | F1-max-cls | AP-cls |  AUROC-segm  | F1-max-segm | AP-segm | PRO-segm |
-|     ViT-B-32      |     CLIP     |    256     |     92.19      |   95.55    | 98.47  |    96.74     |    43.98    |  35.70  |  68.56   |
-|     ViT-B-32      |     CLIP     |    512     |     93.31      |   94.61    | 98.40  |    97.41     |    52.94    |  48.80  |  69.59   |
-|     ViT-B-16      |     CLIP     |    256     |     92.44      |   91.00    | 97.31  |    97.45     |    55.27    |  52.19  |  72.68   |
-|     ViT-B-16      |     CLIP     |    512     |     94.11      |   92.99    | 97.98  |    97.91     |    59.18    |  59.05  |  77.86   |
-| ViT-B-16-plus-240 |     CLIP     |    240     |     92.86      |   93.99    | 97.96  |    97.68     |    54.81    |  51.33  |  73.47   |
-| ViT-B-16-plus-240 |     CLIP     |    512     |     94.13      |   93.84    | 98.34  |    98.14     |    58.66    |  57.53  |  77.23   |
-|     ViT-L-14      |     CLIP     |    336     |     92.74      |   93.21    | 97.71  |    97.84     |    56.60    |  55.94  |  77.01   |
-|     ViT-L-14      |     CLIP     |    518     |     94.82      |   95.29    | 98.58  |    97.77     |    55.55    |  55.46  |  80.62   |
-|   ViT-L-14-336    |     CLIP     |    336     |     95.11      |   94.48    | 98.53  |    97.42     |    56.75    |  55.23  |  79.63   |
-|   ViT-L-14-336    |     CLIP     |    518     |     96.16      |   93.90    | 97.85  |    97.35     |    57.86    |  57.15  |  83.43   |
-|  dino_vitbase16   |     DINO     |    256     |     93.63      |   95.66    | 98.66  |    97.55     |    52.16    |  49.25  |  72.86   |
-|  dino_vitbase16   |     DINO     |    512     |     92.38      |   92.66    | 97.81  |    97.44     |    53.32    |  53.02  |  74.91   |
-|   dinov2_vitb14   |   DINO_v2    |    336     |     93.60      |   91.65    | 97.19  |    98.08     |    63.28    |  65.32  |  74.35   |
-|   dinov2_vitb14   |   DINO_v2    |    518     |     94.99      |   95.11    | 98.55  |    98.30     |    65.75    |  68.89  |  80.41   |
-|   dinov2_vitl14   |   DINO_v2    |    336     |     94.15      |   92.64    | 97.61  |    98.19     |    63.86    |  66.03  |  76.33   |
-|   dinov2_vitl14   |   DINO_v2    |    518     |     95.62      |   95.40    | 98.76  |    98.40     |    65.88    |  69.90  |  82.47   |
-
 <span id='inference_time'/>
 
-## ⌛Inference Time: <a href='#all_catelogue'>[Back to Catalogue]</a>
+## ⌛推理时间: <a href='#all_catelogue'>[返回目录]</a>
 
-We show the inference time per image in the table below when using different backbones and image sizes.
-The default setting for number of images in mutual scoring module is **200**, and GPU is NVIDIA RTX 3090.
+在下表中，我们展示了使用不用backbone和image size时的推理速度。
+在计算推理速度时，我们设定一次性参与互打分的图像数量为**200**，所用GPU为单卡NVIDIA RTX 3090。
 
 |                   |              |            |                 |
 | :---------------: | :----------: | :--------: | :-------------: |
@@ -454,22 +250,22 @@ The default setting for number of images in mutual scoring module is **200**, an
 
 <span id='FAQ'/>
 
-## 🙋🙋‍♂️Frequently Asked Questions: <a href='#all_catelogue'>[Back to Catalogue]</a>
+## 🙋🙋‍♂️常见问题: <a href='#all_catelogue'>[返回目录]</a>
 
-Q: Why do large areas of high anomaly scores appear on normal images in the visualization?
+Q: 可视化图中正常的图像上为什么会出现大面积较高的异常分数？
 
-A: In the visualization, in order to highlight abnormal areas, we adopt a single anomaly map normalization by default. Even if the overall response of the single map is low, a large number of highlighted areas will appear after normalization. Normalization of all the anomaly maps together can be achieved by adding the `vis_type` parameter to the shell script and setting it as `whole_norm`, or by modifying the `testing->vis_type` parameter in the `./configs/musc.yaml`.
+A: 在可视化时，为了突出异常区域，我们默认采用了单图归一化，即便单图响应整体较低，经过归一化后也会出现大量的高亮区域。可通过在shell脚本中添加`vis_type`参数，并设置为`whole_norm`来进行全部图像一同归一化，也可通过修改`./configs/musc.yaml`配置文件中的`testing->vis_type`参数来实现相同的效果。
 
-Q: How to set the appropriate input image resolution ?
+Q: 输入到模型中的图像分辨率如何选取？
 
-A: The image resolution `img_resize` input into the backbone is generally set to a multiple of the patch size of ViT.
-The commonly used values are 224, 240, 256, 336, 512 and 518.
-In the previous section <a href='#results_backbones'>*(jump)*</a>, we show the two input image resolutions commonly used by different feature extractors for reference.
-The image resolution can be changed by modifying the 'img_resize' parameter in the shell script, or by modifying the `datasets->img_resize` parameter in the `./configs/musc.yaml` configuration file.
+A: 输入到模型中的图像分辨率`img_resize`一般为ViT patch size的倍数，可以防止边缘部分产生误检，常用的值为224、240、256、336、512、518，我们在上一节<a href='#results_backbones'>*(跳转)*</a>中展示了不同特征提取器常用的两种输入图像分辨率的大小，可供参考。
+可通过修改shell脚本中的`img_resize`参数更改图像分辨率，也可通过修改`./configs/musc.yaml`配置文件中的`datasets->img_resize`参数来更改。
+
+
 
 <span id='citation'/>
 
-## Citation: <a href='#all_catelogue'>[Back to Catalogue]</a>
+## 引用: <a href='#all_catelogue'>[返回目录]</a>
 ```
 @inproceedings{Li2024MuSc,
   title={MuSc: Zero-Shot Industrial Anomaly Classification and Segmentation with Mutual Scoring of the Unlabeled Images},
@@ -481,11 +277,11 @@ The image resolution can be changed by modifying the 'img_resize' parameter in t
 
 <span id='thanks'/>
 
-## Thanks: <a href='#all_catelogue'>[Back to Catalogue]</a>
+## 致谢: <a href='#all_catelogue'>[返回目录]</a>
 
 Our repo is built on [PatchCore](https://github.com/amazon-science/patchcore-inspection) and [APRIL-GAN](https://github.com/ByChelsea/VAND-APRIL-GAN), thanks their clear and elegant code !
 
 <span id='license'/>
 
-## License: <a href='#all_catelogue'>[Back to Catalogue]</a>
+## 使用许可: <a href='#all_catelogue'>[返回目录]</a>
 MuSc is released under the **MIT Licence**, and is fully open for academic research and also allow free commercial usage. To apply for a commercial license, please contact yuzhou@hust.edu.cn.

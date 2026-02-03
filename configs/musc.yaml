@@ -1,11 +1,11 @@
 datasets:
   dataset_name: 'mvtec_ad'  # choice ['mvtec_ad', 'visa']
   data_path: ./data/mvtec_anomaly_detection/
-  class_name: 'ALL'  # 'ALL' 'transistor' 'pill, screw, wood, zipper, grid'
+  class_name: 'toothbrush'  # 'ALL' 'transistor' 'pill, screw, wood, zipper, grid'
   img_resize: 518
   divide_num: 1
 models:
-  backbone_name: 'ViT-L-14-336'
+  backbone_name: 'dinov3_vitl16'
   pretrained: 'openai'
   batch_size: 4
   feature_layers: [5, 11, 17, 23]
@@ -23,6 +23,7 @@ testing:
 # ViT-L-14 | ViT-L-14-336
 # dino_vitbase8 | dino_vitbase16
 # dinov2_vitb14 | dinov2_vitl14
+# dinov3_vitl16
 
 # models['pretrained'] choice:
 # openai (apply to ViT-B-32, ViT-B-16, ViT-L-14 and ViT-L-14-336)

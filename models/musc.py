@@ -163,7 +163,7 @@ class MuSc():
                     gt_list.extend(list(image_info["is_anomaly"].numpy()))
                 with torch.no_grad(), torch.cuda.amp.autocast():
                     input_image = image.to(torch.float).to(self.device)
-                    if 'dinov2' in self.model_name:
+                    if 'dinov2' in self.model_name or 'dinov3' in self.model_name:
                         patch_tokens = self.dino_model.get_intermediate_layers(x=input_image, n=[l-1 for l in self.features_list], return_class_token=False)
                         image_features = self.dino_model(input_image)
                         patch_tokens = [patch_tokens[l].cpu() for l in range(len(self.features_list))]

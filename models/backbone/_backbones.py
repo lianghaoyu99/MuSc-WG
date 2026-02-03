@@ -76,9 +76,81 @@ def load(name):
     elif name=="dinov2_vitl14":
         url = "dinov2_vitl14/dinov2_vitl14_pretrain.pth"
         patch_size = 14
+    elif name=="dinov3_vitl16":
+        # Correct URL with forward slashes for DINOv3
+        url = "https://dl.fbaipublicfiles.com/dinov3/dinov3_vitl16/dinov3_vitl16_pretrain_lvd1689m-8aa4cbdd.pth"
+        patch_size = 16
         
-    if 'dinov2' in url:
-        model = torch.hub.load('facebookresearch/dinov2', name)
+    if 'dinov2' in url or 'dinov3' in url:
+        repo = 'facebookresearch/dinov2' if 'dinov2' in url else 'facebookresearch/dinov3'
+        
+        # Patch for torch._dynamo.config.accumulated_cache_size_limit issue in DINOv3
+        patch_applied = False
+        original_config = None
+        try:
+            if hasattr(torch, '_dynamo') and hasattr(torch._dynamo, 'config'):
+                if not hasattr(torch._dynamo.config, 'accumulated_cache_size_limit'):
+                    original_config = torch._dynamo.config
+                    
+                    class ConfigProxy:
+                        def __init__(self, config):
+                            self.__dict__['_config'] = config
+                        def __getattr__(self, name):
+                            return getattr(self._config, name)
+                        def __setattr__(self, name, value):
+                            if name == 'accumulated_cache_size_limit':
+                                return
+                            setattr(self._config, name, value)
+                            
+                    torch._dynamo.config = ConfigProxy(original_config)
+                    patch_applied = True
+        except Exception as e:
+            print(f"Warning: Failed to apply dinov3 patch: {e}")
+
+        try:
+            if 'dinov3' in name:
+                # Handle DINOv3 special loading to avoid Windows path backslash issues and 403 errors
+                # We attempt to download manually or use the weights argument
+                import os
+                try:
+                    from torch.hub import get_dir
+                    hub_dir = get_dir()
+                except:
+                    hub_dir = os.path.join(os.path.expanduser('~'), '.cache', 'torch', 'hub')
+                
+                checkpoints_dir = os.path.join(hub_dir, 'checkpoints')
+                os.makedirs(checkpoints_dir, exist_ok=True)
+                
+                # Extract filename from the correct URL
+                filename = os.path.basename(url)
+                local_file = os.path.join(checkpoints_dir, filename)
+                
+                # 1. Try to download if missing
+                if not os.path.exists(local_file):
+                    print(f"Attempting to download DINOv3 weights from: {url}")
+                    try:
+                        torch.hub.download_url_to_file(url, local_file)
+                    except Exception as e:
+                        print(f"\nWarning: Automatic download failed: {e}")
+                        print("DINOv3 weights might require a signed URL or manual download.")
+                        print(f"Please manually download the weights from the official source or the link above.")
+                        print(f"And save it to: {local_file}")
+                        print("Continuing... assuming you might have a local file or want to try default loading.\n")
+
+                # 2. Pass explicit weights path/url to override internal default
+                if os.path.exists(local_file):
+                    print(f"Loading local DINOv3 weights: {local_file}")
+                    model = torch.hub.load(repo, name, weights=local_file)
+                else:
+                    # Try passing the corrected URL directly
+                    print(f"Trying to load DINOv3 with URL: {url}")
+                    model = torch.hub.load(repo, name, weights=url)
+            else:
+                model = torch.hub.load(repo, name)
+        finally:
+            if patch_applied and original_config is not None:
+                torch._dynamo.config = original_config
+                
         return model
 
     elif len(url)>0:

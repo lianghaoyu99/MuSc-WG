@@ -54,7 +54,51 @@ _BACKBONES = {
 }
 
 
+import os
+import torch.nn as nn
+
+class Dinov3HFWrapper(nn.Module):
+    def __init__(self, model_path):
+        super().__init__()
+        try:
+            from transformers import AutoModel
+            self.model = AutoModel.from_pretrained(model_path)
+        except ImportError:
+            raise ImportError("Please install transformers library: pip install transformers")
+        
+    def forward(self, x):
+        outputs = self.model(x)
+        return outputs.last_hidden_state[:, 0]
+
+    def get_intermediate_layers(self, x, n=1, return_class_token=False):
+        outputs = self.model(x, output_hidden_states=True)
+        # hidden_states: (embedding, layer_0, layer_1, ...)
+        hidden_states = outputs.hidden_states
+        
+        if isinstance(n, int):
+            indices = range(len(hidden_states) - 1 - n + 1, len(hidden_states)) # last n layers (excluding embedding? DINO logic is tricky)
+            # DINO implementation: n=1 means last layer.
+            # hidden_states[-1] is last layer.
+            indices = range(len(hidden_states) - n, len(hidden_states))
+        else:
+            # n is list of block indices (0-based)
+            # transformer hidden_states[i+1] corresponds to block i output
+            indices = [i + 1 for i in n]
+            
+        layers = []
+        for i in indices:
+            feat = hidden_states[i]
+            if not return_class_token:
+                feat = feat[:, 1:, :]
+            layers.append(feat)
+        return layers
+
 def load(name):
+    # Check if name is a local directory containing HF model
+    if os.path.isdir(name) or (os.path.exists(name) and 'safetensors' in os.listdir(os.path.dirname(name))):
+        print(f"Loading local HF model from: {name}")
+        return Dinov3HFWrapper(name)
+
     url = []
     patch_size = 8
     if name == "dino_deitsmall16":

@@ -1,7 +1,7 @@
 datasets:
   dataset_name: 'mvtec_ad'  # choice ['mvtec_ad', 'visa']
   data_path: ./data/mvtec_anomaly_detection/
-  class_name: 'toothbrush'  # 'ALL' 'transistor' 'pill, screw, wood, zipper, grid'
+  class_name: 'ALL'  # 'ALL' 'transistor' 'pill, screw, wood, zipper, grid'
   img_resize: 518
   divide_num: 1
 models:

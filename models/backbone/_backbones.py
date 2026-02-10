@@ -61,8 +61,28 @@ class Dinov3HFWrapper(nn.Module):
     def __init__(self, model_path):
         super().__init__()
         try:
-            from transformers import AutoModel
-            self.model = AutoModel.from_pretrained(model_path)
+            from transformers import AutoModel, AutoConfig
+            try:
+                self.model = AutoModel.from_pretrained(model_path)
+            except Exception as e:
+                # Fallback for unknown model_type 'dinov3_vit'
+                import json
+                import os
+                config_path = os.path.join(model_path, "config.json")
+                if os.path.exists(config_path):
+                    with open(config_path, 'r', encoding='utf-8') as f:
+                        config_dict = json.load(f)
+                    
+                    if config_dict.get("model_type") == "dinov3_vit":
+                        print("Detected DINOv3 model, patching model_type to 'dinov2' for compatibility...")
+                        # Remove model_type from dict to avoid multiple values error in for_model
+                        config_dict.pop("model_type", None)
+                        
+                        # Create config from dict, forcing dinov2
+                        config = AutoConfig.for_model("dinov2", **config_dict)
+                        self.model = AutoModel.from_pretrained(model_path, config=config, ignore_mismatched_sizes=True)
+                        return
+                raise e
         except ImportError:
             raise ImportError("Please install transformers library: pip install transformers")
         
@@ -98,6 +118,16 @@ def load(name):
     if os.path.isdir(name) or (os.path.exists(name) and 'safetensors' in os.listdir(os.path.dirname(name))):
         print(f"Loading local HF model from: {name}")
         return Dinov3HFWrapper(name)
+
+    # Check common local weights directories
+    potential_paths = [
+        os.path.join('weights', name),
+        os.path.join('weights', name + '_hf'),
+    ]
+    for p in potential_paths:
+        if os.path.isdir(p):
+            print(f"Loading local HF model from: {p}")
+            return Dinov3HFWrapper(p)
 
     url = []
     patch_size = 8
@@ -155,7 +185,7 @@ def load(name):
             if 'dinov3' in name:
                 # Handle DINOv3 special loading to avoid Windows path backslash issues and 403 errors
                 # We attempt to download manually or use the weights argument
-                import os
+                # import os # Removed redundant import to fix UnboundLocalError
                 try:
                     from torch.hub import get_dir
                     hub_dir = get_dir()
@@ -167,7 +197,13 @@ def load(name):
                 
                 # Extract filename from the correct URL
                 filename = os.path.basename(url)
-                local_file = os.path.join(checkpoints_dir, filename)
+                
+                # Check project weights directory first
+                project_weights = os.path.join('weights', filename)
+                if os.path.exists(project_weights):
+                    local_file = project_weights
+                else:
+                    local_file = os.path.join(checkpoints_dir, filename)
                 
                 # 1. Try to download if missing
                 if not os.path.exists(local_file):

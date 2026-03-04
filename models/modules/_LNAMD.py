@@ -76,14 +76,26 @@ class LNAMD(torch.nn.Module):
         features_layers = []
         for feature in features:  # 遍历4个特征层
             # reshape and layer normalization
-            feature = feature[:, 1:, :] # remove the cls token 移除CLS token: [4, 1370, 1024] → [4, 1369, 1024]
-            # 重塑为空间格式: 1369 = 37×37 (518/14=37)
-            # [4, 1369, 1024] → [4, 37, 37, 1024]
+            
+            # Check for extra tokens (CLS, Registers, etc.)
+            num_tokens = feature.shape[1]
+            grid_size = int(math.sqrt(num_tokens))
+            
+            # If not a perfect square, we likely have extra tokens (CLS, Registers)
+            if grid_size * grid_size < num_tokens:
+                expected_tokens = grid_size * grid_size
+                extra_tokens = num_tokens - expected_tokens
+                # Remove extra tokens from the beginning
+                # For DINOv3: [FakeCLS, Regs, Patches] -> remove FakeCLS + Regs
+                # For DINOv2 (standard): [FakeCLS, Patches] -> remove FakeCLS
+                feature = feature[:, extra_tokens:, :]
+            
+            # Now feature should be [B, N*N, C]
             feature = feature.reshape(feature.shape[0],
-                                      int(math.sqrt(feature.shape[1])),  # 37
-                                      int(math.sqrt(feature.shape[1])),  # 37
+                                      int(math.sqrt(feature.shape[1])),  # 32
+                                      int(math.sqrt(feature.shape[1])),  # 32
                                       feature.shape[2])  # 1024
-            feature = feature.permute(0, 3, 1, 2)  # 通道在前格式: [4, 1024, 37, 37]
+            feature = feature.permute(0, 3, 1, 2)  # 通道在前格式: [4, 1024, 32, 32]
             # 层归一化: 对通道、高度、宽度归一化
             feature = torch.nn.LayerNorm([feature.shape[1], feature.shape[2],
                                           feature.shape[3]]).to(self.device)(feature)

@@ -63,9 +63,11 @@ class Dinov3HFWrapper(nn.Module):
         try:
             from transformers import AutoModel, AutoConfig
             try:
+                # Try standard loading first (works for newer transformers with dinov3 support)
                 self.model = AutoModel.from_pretrained(model_path)
             except Exception as e:
-                # Fallback for unknown model_type 'dinov3_vit'
+                # Fallback logic only if native loading fails
+                print(f"Native loading failed: {e}. Trying compatibility mode...")
                 import json
                 import os
                 config_path = os.path.join(model_path, "config.json")
@@ -95,6 +97,9 @@ class Dinov3HFWrapper(nn.Module):
         # hidden_states: (embedding, layer_0, layer_1, ...)
         hidden_states = outputs.hidden_states
         
+        # Check if model has SwiGLU / specific DINOv3 architecture that might change layer indexing
+        # But generally hidden_states structure is consistent across transformers ViT models
+        
         if isinstance(n, int):
             indices = range(len(hidden_states) - 1 - n + 1, len(hidden_states)) # last n layers (excluding embedding? DINO logic is tricky)
             # DINO implementation: n=1 means last layer.
@@ -115,6 +120,7 @@ class Dinov3HFWrapper(nn.Module):
 
 def load(name):
     # Check if name is a local directory containing HF model
+    # Note: transformers library >= 4.40 supports DINOv3 architecture natively
     if os.path.isdir(name) or (os.path.exists(name) and 'safetensors' in os.listdir(os.path.dirname(name))):
         print(f"Loading local HF model from: {name}")
         return Dinov3HFWrapper(name)
@@ -203,6 +209,11 @@ def load(name):
                 if os.path.exists(project_weights):
                     local_file = project_weights
                 else:
+                    # Also check for HF directory if .pth is missing, and warn
+                    hf_dir = os.path.join('weights', name + '_hf')
+                    if os.path.exists(hf_dir):
+                        print(f"Note: Found HF weights directory at {hf_dir}. DINOv3 can also be loaded via transformers if supported.")
+                        
                     local_file = os.path.join(checkpoints_dir, filename)
                 
                 # 1. Try to download if missing

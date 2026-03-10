@@ -5,9 +5,7 @@ import torch
 from torchvision import transforms
 import random
 
-# _CLASSNAMES = ["bottle", "cable", "carpet", "grid",
-#             "hazelnut", "leather", "metal_nut", "pill",
-#             "tile", "toothbrush", "wood", "zipper"]
+# _CLASSNAMES = ["capsule", "screw", "transistor", "wood"]
 
 _CLASSNAMES = ["bottle", "cable", "capsule", "carpet", "grid",
             "hazelnut", "leather", "metal_nut", "pill", "screw",

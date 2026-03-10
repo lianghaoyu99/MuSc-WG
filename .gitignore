@@ -1,6 +1,6 @@
 # User requested ignores (Output & Data)
 output/
-data/
+/data/
 weights/
 
 # Python standard ignores

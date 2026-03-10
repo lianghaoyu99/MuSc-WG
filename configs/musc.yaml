@@ -1,7 +1,7 @@
 datasets:
   dataset_name: 'mvtec_ad'  # choice ['mvtec_ad', 'visa']
   data_path: ./data/mvtec_anomaly_detection/
-  class_name: 'transistor'  # 'ALL' 'transistor' 'pill, screw, wood, zipper, grid'
+  class_name: 'ALL'  # 'ALL' 'transistor' 'pill, screw, wood, zipper, grid'
   img_resize: 512  # 512 is for Patch 16 (32*16), for Patch 14 use 518 (37*14)
   divide_num: 1
 models:

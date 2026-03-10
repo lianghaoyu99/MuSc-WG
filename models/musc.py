@@ -210,17 +210,17 @@ class MuSc():
                 ablation_keep_ll = True         # True: Keep Background Context (LL). False: High-Pass only (Edges).
 
                 ablation_intra_weight = False   # True: Use intra-image self-similarity weighting to suppress background
-                ablation_gamma   = 1.0          # Gamma scaling to suppress secondary anomalies (e.g., 2.0 - 4.0)
+                ablation_gamma   = 2.0          # Gamma scaling to suppress secondary anomalies (e.g., 2.0 - 4.0)
                 
-                print(f"Using Original LNAMD with r={r}, intra_weight={ablation_intra_weight}, gamma={ablation_gamma}")
-                LNAMD_r = LNAMD(device=self.device, r=r, feature_dim=feature_dim, feature_layer=self.features_list)
+                # print(f"Using Original LNAMD with r={r}, intra_weight={ablation_intra_weight}, gamma={ablation_gamma}")
+                # LNAMD_r = LNAMD(device=self.device, r=r, feature_dim=feature_dim, feature_layer=self.features_list)
                 
-                # print(f"Using WTConvLNAMDStatic with r={r}, wt={ablation_wt_type}, pad={ablation_padding}, level0={ablation_level0}, "
-                #       f"bandpass={ablation_use_details}(start={ablation_detail_start}, keep_ll={ablation_keep_ll}), "
-                #       f"intra_weight={ablation_intra_weight}, gamma={ablation_gamma}")
-                # LNAMD_r = WTConvLNAMDStatic(device=self.device, feature_dim=feature_dim, feature_layer=self.features_list, r=r,
-                #                             wt_type=ablation_wt_type, padding_mode=ablation_padding, include_level0=ablation_level0,
-                #                             use_details=ablation_use_details, detail_start_level=ablation_detail_start, keep_ll=ablation_keep_ll)
+                print(f"Using WTConvLNAMDStatic with r={r}, wt={ablation_wt_type}, pad={ablation_padding}, level0={ablation_level0}, "
+                      f"bandpass={ablation_use_details}(start={ablation_detail_start}, keep_ll={ablation_keep_ll}), "
+                      f"intra_weight={ablation_intra_weight}, gamma={ablation_gamma}")
+                LNAMD_r = WTConvLNAMDStatic(device=self.device, feature_dim=feature_dim, feature_layer=self.features_list, r=r,
+                                            wt_type=ablation_wt_type, padding_mode=ablation_padding, include_level0=ablation_level0,
+                                            use_details=ablation_use_details, detail_start_level=ablation_detail_start, keep_ll=ablation_keep_ll)
                 Z_layers = {}
                 for im in range(len(patch_tokens_list)):  # 遍历所有batch的patch tokens(l,b,p,d)
                     patch_tokens = [p.to(self.device) for p in patch_tokens_list[im]]  # 提取局部特征patch tokens

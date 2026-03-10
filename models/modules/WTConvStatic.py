@@ -156,21 +156,40 @@ class WTConvLNAMDStatic(nn.Module):
         for i, feature in enumerate(features):
             feature = feature.to(self.device)
             
-            if feature.shape[1] > 1:
-                feature = feature[:, 1:, :]
+            # Check for extra tokens (CLS, Registers, etc.)
+            num_tokens = feature.shape[1]
+            grid_size = int(math.sqrt(num_tokens))
+            
+            # If not a perfect square, we likely have extra tokens (CLS, Registers)
+            if grid_size * grid_size < num_tokens:
+                expected_tokens = grid_size * grid_size
+                extra_tokens = num_tokens - expected_tokens
+                # Remove extra tokens from the beginning
+                # For DINOv3: [FakeCLS, Regs, Patches] -> remove FakeCLS + Regs
+                # For DINOv2 (standard): [FakeCLS, Patches] -> remove FakeCLS
+                feature = feature[:, extra_tokens:, :]
             
             B, L, C = feature.shape
             H = int(math.sqrt(L))
             W = H
             
+            # Reshape to (B, C, H, W) for WTConv
+            # feature is (B, L, C) -> (B, H, W, C) -> (B, C, H, W)
             feature_spatial = feature.reshape(B, H, W, C).permute(0, 3, 1, 2)
             
-            # LayerNorm 
+            # LayerNorm - applied on (C, H, W) dimension?
+            # F.layer_norm expects normalized_shape
+            # If input is (B, C, H, W), and normalized_shape is [C, H, W],
+            # it normalizes over the last 3 dimensions. Correct.
             feature_spatial = F.layer_norm(feature_spatial, [C, H, W])
             
             wt_out = self.wt_convs[i](feature_spatial)
             
+            # Flatten back to (B, L, C)
             wt_out_flat = wt_out.flatten(2).transpose(1, 2)
             processed_features.append(wt_out_flat)
             
+        # Stack along layer dimension: (B, L, num_layers, C)
+        # processed_features is a list of (B, L, C) tensors
+        # torch.stack(..., dim=2) -> (B, L, num_layers, C)
         return torch.stack(processed_features, dim=2).detach()

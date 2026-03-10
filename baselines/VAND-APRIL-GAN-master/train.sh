@@ -1,5 +1,5 @@
 ### train on the MVTec AD dataset
-python train.py --dataset mvtec --train_data_path ./data/mvtec \
+python train.py --dataset mvtec --train_data_path ../../data/mvtec_anomaly_detection \
 --save_path ./exps/visa/vit_large_14_518 --config_path ./open_clip/model_configs/ViT-L-14-336.json --model ViT-L-14-336 \
 --features_list 6 12 18 24 --pretrained openai --image_size 518  --batch_size 8 --aug_rate 0.2 --print_freq 1 \
 --epoch 3 --save_freq 1

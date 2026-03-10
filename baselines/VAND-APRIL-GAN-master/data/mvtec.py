@@ -9,7 +9,7 @@ class MVTecSolver(object):
         'tile', 'toothbrush', 'transistor', 'wood', 'zipper',
     ]
 
-    def __init__(self, root='data/mvtec'):
+    def __init__(self, root='../../data/mvtec_anomaly_detection'):
         self.root = root
         self.meta_path = f'{root}/meta.json'
 
@@ -40,5 +40,5 @@ class MVTecSolver(object):
             f.write(json.dumps(info, indent=4) + "\n")
 
 if __name__ == '__main__':
-    runner = MVTecSolver(root='data/mvtec')
+    runner = MVTecSolver(root='../../data/mvtec_anomaly_detection')
     runner.run()

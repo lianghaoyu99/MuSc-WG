@@ -1,11 +1,11 @@
 datasets:
-  dataset_name: 'mvtec_ad'  # choice ['mvtec_ad', 'visa']
+  dataset_name: 'mvtec_ad'  # choice ['mvtec_ad', 'visa', 'btad', 'miniled_ad', 'microled_ad']
   data_path: ./data/mvtec_anomaly_detection/
-  class_name: 'ALL'  # 'ALL' 'transistor' 'pill, screw, wood, zipper, grid'
-  img_resize: 512  # 512 is for Patch 16 (32*16), for Patch 14 use 518 (37*14)
+  class_name: 'transistor'  # 'ALL' 'transistor' 'pill, screw, wood, zipper, grid'
+  img_resize: 518  # 512 is for Patch 16 (32*16), for Patch 14 use 518 (37*14)
   divide_num: 1
 models:
-  backbone_name: 'dinov3_vitl16'
+  backbone_name: 'ViT-L-14-336'
   pretrained: 'openai'
   batch_size: 4
   feature_layers: [5, 11, 17, 23]
@@ -16,6 +16,10 @@ testing:
   vis: True
   vis_type: single_norm # choice ['single_norm', 'whole_norm']
   save_excel: True
+  vis_tsne: True
+  tsne_perplexity: 30
+  tsne_n_iter: 1000
+  tsne_source: 'lnamd' # 'class' or 'lnamd'
 
 
 # models['backbone_name'] choice:

@@ -11,6 +11,10 @@ import datasets.visa as visa
 from datasets.visa import _CLASSNAMES as _CLASSNAMES_visa
 import datasets.btad as btad
 from datasets.btad import _CLASSNAMES as _CLASSNAMES_btad
+import datasets.miniled as miniled
+from datasets.miniled import _CLASSNAMES as _CLASSNAMES_miniled
+import datasets.microled as microled
+from datasets.microled import _CLASSNAMES as _CLASSNAMES_microled
 
 import models.backbone.open_clip as open_clip
 import models.backbone._backbones as _backbones
@@ -25,6 +29,8 @@ from tqdm import tqdm
 import pickle
 import time
 import cv2
+import matplotlib.pyplot as plt
+from sklearn.manifold import TSNE
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -42,6 +48,10 @@ class MuSc():
         self.vis = cfg['testing']['vis']
         self.vis_type = cfg['testing']['vis_type']
         self.save_excel = cfg['testing']['save_excel']
+        self.vis_tsne = cfg['testing'].get('vis_tsne', False)
+        self.tsne_perplexity = cfg['testing'].get('tsne_perplexity', 30)
+        self.tsne_n_iter = cfg['testing'].get('tsne_n_iter', 1000)
+        self.tsne_source = cfg['testing'].get('tsne_source', 'class') # 'class' for class tokens, 'lnamd' for LNAMD features
         # the categories to be tested
         self.categories = cfg['datasets']['class_name']
         if isinstance(self.categories, str):
@@ -52,6 +62,10 @@ class MuSc():
                     self.categories = _CLASSNAMES_mvtec_ad
                 elif self.dataset == 'btad':
                     self.categories = _CLASSNAMES_btad
+                elif self.dataset == 'miniled_ad':
+                    self.categories = _CLASSNAMES_miniled
+                elif self.dataset == 'microled_ad':
+                    self.categories = _CLASSNAMES_microled
             else:
                 self.categories = [self.categories]
 
@@ -93,6 +107,14 @@ class MuSc():
             test_dataset = btad.BTADDataset(source=self.path, split=btad.DatasetSplit.TEST,
                                             classname=category, resize=self.image_size, imagesize=self.image_size, clip_transformer=self.preprocess,
                                                 divide_num=divide_num, divide_iter=divide_iter, random_seed=self.seed)
+        elif self.dataset == 'miniled_ad':
+            test_dataset = miniled.MiniledDataset(source=self.path, split=miniled.DatasetSplit.TEST,
+                                            classname=category, resize=self.image_size, imagesize=self.image_size, clip_transformer=self.preprocess,
+                                                divide_num=divide_num, divide_iter=divide_iter, random_seed=self.seed)
+        elif self.dataset == 'microled_ad':
+            test_dataset = microled.MicroledDataset(source=self.path, split=microled.DatasetSplit.TEST,
+                                            classname=category, resize=self.image_size, imagesize=self.image_size, clip_transformer=self.preprocess,
+                                                divide_num=divide_num, divide_iter=divide_iter, random_seed=self.seed)
         return test_dataset
 
 
@@ -127,6 +149,44 @@ class MuSc():
                 cv2.imwrite(save_path, anomaly_map)
 
 
+    def visualize_tsne(self, features, labels, category, title="t-SNE Visualization"):
+        """
+        Perform t-SNE visualization on the features.
+        
+        Args:
+            features (numpy.ndarray): Feature matrix of shape (N, D).
+            labels (numpy.ndarray): Labels of shape (N,), 0 for normal, 1 for anomaly.
+            category (str): The category name for saving the plot.
+            title (str): Title of the plot.
+        """
+        print(f"Performing t-SNE on {features.shape[0]} samples with dimension {features.shape[1]}...")
+        tsne = TSNE(n_components=2, perplexity=self.tsne_perplexity, n_iter=self.tsne_n_iter, random_state=self.seed)
+        features_2d = tsne.fit_transform(features)
+        
+        plt.figure(figsize=(10, 8))
+        
+        # Plot normal samples (label 0)
+        normal_indices = labels == 0
+        plt.scatter(features_2d[normal_indices, 0], features_2d[normal_indices, 1], 
+                    c='blue', label='Normal', alpha=0.6, s=20)
+        
+        # Plot anomaly samples (label 1)
+        anomaly_indices = labels == 1
+        plt.scatter(features_2d[anomaly_indices, 0], features_2d[anomaly_indices, 1], 
+                    c='red', label='Anomaly', alpha=0.6, s=20)
+        
+        plt.title(f"{title} - {category}")
+        plt.legend()
+        plt.grid(True, linestyle='--', alpha=0.3)
+        
+        # Save the plot
+        tsne_dir = os.path.join(self.output_dir, category, 'tsne_visualization')
+        os.makedirs(tsne_dir, exist_ok=True)
+        save_path = os.path.join(tsne_dir, f'{self.tsne_source}_tsne.png')
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        plt.close()
+        print(f"t-SNE plot saved to {save_path}")
+
     def make_category_data(self, category):
         print(category)
 
@@ -137,6 +197,10 @@ class MuSc():
         img_masks = []
         class_tokens = []
         image_path_list = []
+        # t-SNE data collection
+        tsne_features = []
+        tsne_labels = []
+        
         start_time_all = time.time()
         dataset_num = 0
         for divide_iter in range(divide_num):  # 按照划分数据子集的数量依次处理每个子集
@@ -184,6 +248,13 @@ class MuSc():
                         patch_tokens = [patch_tokens[l].cpu() for l in range(len(self.features_list))] # 将每层特征移到CPU  patch_tokens(l,b,p,d)
                 image_features = [image_features[bi].squeeze().cpu().numpy() for bi in range(image_features.shape[0])]  # PyTorch张量 → numpy数组
                 class_tokens.extend(image_features)
+                # Collect features for t-SNE if configured to use class tokens
+                if self.vis_tsne and self.tsne_source == 'class':
+                    tsne_features.extend(class_tokens[-len(image_features):]) # Append latest batch features
+                    # Extend labels for the current batch
+                    current_batch_labels = list(image_info["is_anomaly"].numpy())
+                    tsne_labels.extend(current_batch_labels)
+                
                 patch_tokens_list.append(patch_tokens)  # (B, L+1, C)  处理不同batch的patch_tokens，patch_tokens_list(B, l, b, p, d)
             end_time = time.time()
             print('extract time: {}ms per image'.format((end_time-start_time)*1000/subset_num))
@@ -233,6 +304,33 @@ class MuSc():
                             if str(l) not in Z_layers.keys():
                                 Z_layers[str(l)] = []
                             Z_layers[str(l)].append(features[:, :, l, :])
+                    
+                    # Collect LNAMD features for t-SNE if configured
+                    if self.vis_tsne and self.tsne_source == 'lnamd':
+                        # Use features from the last layer (or a specific layer) for visualization
+                        # Here we use global average pooling on the spatial dimensions of the last layer features
+                        # features shape: [B, H*W, L, C]
+                        # Take the last layer features: [B, H*W, C]
+                        last_layer_idx = -1
+                        lnamd_feats = features[:, :, last_layer_idx, :]
+                        # Global Average Pooling: [B, C]
+                        gap_feats = lnamd_feats.mean(dim=1).cpu().numpy()
+                        tsne_features.extend(gap_feats)
+                        
+                        # We need the labels for this batch 'im'.
+                        # The full gt_list for this subset is accumulating, but 'im' is the index in patch_tokens_list.
+                        # patch_tokens_list has size subset_num // batch_size.
+                        # The start index for this batch in gt_list (relative to current subset) is im * batch_size.
+                        # However, gt_list contains ALL labels from previous divide_iters too if we don't clear it.
+                        # Looking at line 163, gt_list is extended. So gt_list has total dataset_num labels.
+                        # The subset starts at dataset_num - subset_num.
+                        # So current batch starts at (dataset_num - subset_num) + im * batch_size.
+                        
+                        start_idx = (dataset_num - subset_num) + im * self.batch_size
+                        end_idx = start_idx + features.shape[0]
+                        current_batch_labels = gt_list[start_idx:end_idx]
+                        tsne_labels.extend(current_batch_labels)
+                
                 end_time = time.time()
                 print('LNAMD-{}: {}ms per image'.format(r, (end_time-start_time)*1000/subset_num))
 
@@ -273,6 +371,18 @@ class MuSc():
                 torch.cuda.max_memory_allocated() / 1024 / 1024,
                 torch.cuda.max_memory_reserved() / 1024 / 1024
             ))
+
+        if self.vis_tsne:
+            try:
+                tsne_features_np = np.array(tsne_features)
+                tsne_labels_np = np.array(tsne_labels)
+                # Check if we have enough samples for t-SNE
+                if tsne_features_np.shape[0] > self.tsne_perplexity:
+                    self.visualize_tsne(tsne_features_np, tsne_labels_np, category, title=f"t-SNE ({self.tsne_source})")
+                else:
+                    print(f"Skipping t-SNE: Not enough samples ({tsne_features_np.shape[0]}) for perplexity {self.tsne_perplexity}")
+            except Exception as e:
+                print(f"Error during t-SNE visualization: {e}")
 
         anomaly_maps = anomaly_maps.cpu().numpy()
         torch.cuda.empty_cache()

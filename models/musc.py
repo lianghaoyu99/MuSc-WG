@@ -268,6 +268,11 @@ class MuSc():
         #     pickle.dump([np.array(class_tokens)], f)
         end_time_all = time.time()
         print('MuSc: {}ms per image'.format((end_time_all-start_time_all)*1000/dataset_num))
+        if torch.cuda.is_available():
+            print('MuSc GPU Memory: {:.2f} MB (Allocated), {:.2f} MB (Reserved)'.format(
+                torch.cuda.max_memory_allocated() / 1024 / 1024,
+                torch.cuda.max_memory_reserved() / 1024 / 1024
+            ))
 
         anomaly_maps = anomaly_maps.cpu().numpy()
         torch.cuda.empty_cache()

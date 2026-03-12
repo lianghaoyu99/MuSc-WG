@@ -1,3 +1,4 @@
+import time
 import os
 import cv2
 import json
@@ -147,6 +148,10 @@ def test(args):
     results['anomaly_maps'] = []
     results['gt_sp'] = []
     results['pr_sp'] = []
+    
+    start_time_all = time.time()
+    dataset_num = len(test_dataloader)
+    
     for items in test_dataloader:
         image = items['img'].to(device)
         cls_name = items['cls_name']
@@ -214,6 +219,14 @@ def test(args):
             if not os.path.exists(save_vis):
                 os.makedirs(save_vis)
             cv2.imwrite(os.path.join(save_vis, filename), vis)
+    
+    end_time_all = time.time()
+    print('VAND: {}ms per image'.format((end_time_all-start_time_all)*1000/dataset_num))
+    if torch.cuda.is_available():
+        print('VAND GPU Memory: {:.2f} MB (Allocated), {:.2f} MB (Reserved)'.format(
+            torch.cuda.max_memory_allocated() / 1024 / 1024,
+            torch.cuda.max_memory_reserved() / 1024 / 1024
+        ))
 
     # metrics
     table_ls = []

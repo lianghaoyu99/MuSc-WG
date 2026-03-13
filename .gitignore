@@ -2,7 +2,6 @@
 output/
 /data/
 weights/
-results/
 
 # Python standard ignores
 __pycache__/

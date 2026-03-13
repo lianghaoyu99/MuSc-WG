@@ -7,7 +7,8 @@ import random
 
 
 
-_CLASSNAMES = ["patch_a", "patch_b", "patch_c", "patch_d", "patch_e"]
+_CLASSNAMES = ["microled_a", "microled_b", "microled_c", "microled_d", "microled_e", 
+                "microled_f", "microled_g", "microled_h", "microled_i", "microled_j"]
 
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]

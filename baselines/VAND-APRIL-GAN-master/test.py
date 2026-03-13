@@ -17,7 +17,7 @@ from sklearn.metrics import auc, roc_auc_score, average_precision_score, f1_scor
 import open_clip
 from few_shot import memory
 from model import LinearLayer
-from dataset import VisaDataset, MVTecDataset
+from dataset import VisaDataset, MVTecDataset, MicroledDataset, MiniledDataset
 from prompt_ensemble import encode_text_with_prompt_ensemble
 
 
@@ -128,6 +128,10 @@ def test(args):
     if dataset_name == 'mvtec':
         test_data = MVTecDataset(root=dataset_dir, transform=preprocess, target_transform=transform,
                                  aug_rate=-1, mode='test')
+    elif dataset_name == 'microled':
+        test_data = MicroledDataset(root=dataset_dir, transform=preprocess, target_transform=transform, aug_rate=-1, mode='test')
+    elif dataset_name == 'miniled':
+        test_data = MiniledDataset(root=dataset_dir, transform=preprocess, target_transform=transform, aug_rate=-1, mode='test')
     else:
         test_data = VisaDataset(root=dataset_dir, transform=preprocess, target_transform=transform, mode='test')
     test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False)

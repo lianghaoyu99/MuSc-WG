@@ -156,3 +156,11 @@ class MVTecDataset(data.Dataset):
 		img_mask = [] if img_mask is None else img_mask
 		return {'img': img, 'img_mask': img_mask, 'cls_name': cls_name, 'anomaly': anomaly,
 				'img_path': os.path.join(self.root, img_path)}
+
+
+class MicroledDataset(MVTecDataset):
+    pass
+
+
+class MiniledDataset(MVTecDataset):
+    pass

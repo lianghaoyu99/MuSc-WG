@@ -7,7 +7,7 @@ import random
 
 
 
-_CLASSNAMES = ["miniled_a", "miniled_b"]
+_CLASSNAMES = ["miniled_TypeA_1", "miniled_TypeA_2", "miniled_TypeB_1", "miniled_TypeB_2"]
 
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]

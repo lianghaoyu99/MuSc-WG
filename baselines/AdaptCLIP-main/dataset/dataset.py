@@ -48,6 +48,18 @@ def generate_class_info(dataset_name):
         obj_list = ['Br35H', 'BrainMRI', 'HeadCT']  # 'COVID19'
     elif dataset_name == 'medical-seg':
         obj_list = ['ClinicDB',  'ColonDB', 'Endo',  'ISIC', 'Kvasir']  # 'TN3K'
+    elif dataset_name == 'microled':
+        obj_list = [
+            'microled_TypeA_1', 'microled_TypeA_2', 'microled_TypeA_3', 'microled_TypeA_4',
+            'microled_TypeA_5', 'microled_TypeA_6', 'microled_TypeA_7', 'microled_TypeA_8',
+            'microled_TypeA_9', 'microled_TypeA_10', 'microled_TypeA_11', 'microled_TypeA_12',
+            'microled_TypeA_13', 'microled_TypeA_14', 'microled_TypeA_15', 'microled_TypeA_16',
+            'microled_TypeA_17', 'microled_TypeA_18', 'microled_TypeA_19', 'microled_TypeA_20'
+        ]
+    elif dataset_name == 'miniled':
+        obj_list = [
+            'miniled_TypeA_1', 'miniled_TypeA_2', 'miniled_TypeB_1', 'miniled_TypeB_2',
+        ]
     elif dataset_name == 'RealIAD':
         obj_list = ["audiojack", "bottle_cap", "button_battery", "end_cap", "eraser", "fire_hood", "mint", "mounts", "pcb", "phone_battery",  \
                     "plastic_nut", "plastic_plug", "porcelain_doll", "regulator", "rolled_strip_base", "sim_card_set", "switch", "tape", "terminalblock",  \

@@ -7,8 +7,11 @@ import random
 
 
 
-_CLASSNAMES = ["microled_a", "microled_b", "microled_c", "microled_d", "microled_e", 
-                "microled_f", "microled_g", "microled_h", "microled_i", "microled_j"]
+_CLASSNAMES = ["microled_TypeA_1", "microled_TypeA_2", "microled_TypeA_3", "microled_TypeA_4", 
+            "microled_TypeA_5", "microled_TypeA_6", "microled_TypeA_7", "microled_TypeA_8", 
+            "microled_TypeA_9", "microled_TypeA_10", "microled_TypeA_11", "microled_TypeA_12", 
+            "microled_TypeA_13", "microled_TypeA_14", "microled_TypeA_15", "microled_TypeA_16", 
+            "microled_TypeA_17", "microled_TypeA_18", "microled_TypeA_19", "microled_TypeA_20"]
 
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]

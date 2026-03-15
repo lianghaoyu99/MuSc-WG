@@ -43,8 +43,8 @@ done
 
 
 # test on MVTec dataset, model trained on VisA dataset
-train_dataset=mvtec
-test_dataset=visa
+train_dataset=visa
+test_dataset=mvtec
 for shot in 0 1 2 4
 do
     if [ ${shot} -eq 0 ]; then

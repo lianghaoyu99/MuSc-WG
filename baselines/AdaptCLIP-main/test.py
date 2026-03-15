@@ -3,6 +3,7 @@
 import argparse
 import pickle
 import random
+import time
 from collections import defaultdict
 
 import numpy as np
@@ -134,9 +135,9 @@ def test(args):
                             seed=seed, class_name=args.class_name)
     else:
         prompt_data = PromptDataset(root=dataset_dir, transform=preprocess, target_transform=target_transform, \
-                                    dataset_name=dataset_name, k_shots=k_shots, save_dir=save_path, mode=mode, seed=seed)
+                                    dataset_name=dataset_name, k_shots=k_shots, save_dir=save_path, mode=mode, seed=seed, class_name=args.class_name)
         test_data = Dataset(root=dataset_dir, transform=preprocess, target_transform=target_transform, \
-                            dataset_name=dataset_name, k_shots=k_shots, save_dir=save_path, mode=mode, seed=seed)
+                            dataset_name=dataset_name, k_shots=k_shots, save_dir=save_path, mode=mode, seed=seed, class_name=args.class_name)
         sample_level = False
     prompt_dataloader = torch.utils.data.DataLoader(prompt_data, batch_size=batch_size, shuffle=False)
     test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=batch_size, shuffle=False, num_workers=4)
@@ -185,7 +186,7 @@ def test(args):
 
 
     # ====================== Initialize Evaluation Metrics ======================
-    cpu_eva = False
+    cpu_eva = True
     if cpu_eva:
         evaluator = Evaluator('cpu', metrics=eval_metrics, sample_level=sample_level)
     else:
@@ -206,8 +207,8 @@ def test(args):
 
     # ====================== Visual and Learner forward ======================
     sample_ids, gt_masks, pr_masks, cls_names, gt_anomalys, pr_anomalys, query_paths = [], [], [], [], [], [], []
-    # nums = 0
-    # total_time = 0
+    dataset_num = 0
+    start_time_all = time.time()
     for idx, items in enumerate(tqdm(test_dataloader)):
         query_image = items['img'].to(device)
         current_batchsize = query_image.shape[0]
@@ -312,6 +313,7 @@ def test(args):
         pixel_anomaly_map  = torch.nan_to_num(pixel_anomaly_map,  nan=0.0, posinf=0.0, neginf=0.0)
         image_anomaly_pred = torch.nan_to_num(image_anomaly_pred, nan=0.0, posinf=0.0, neginf=0.0)
 
+        dataset_num += current_batchsize
         sample_ids.append(np.array(sample_id))
         cls_names.append(np.array(cls_name))
         query_paths.append(np.array(query_path))
@@ -328,6 +330,14 @@ def test(args):
 
             gt_anomalys.append(gt_anomaly.int())
             pr_anomalys.append(image_anomaly_pred)
+
+    end_time_all = time.time()
+    print('AdaptCLIP: {}ms per image'.format((end_time_all - start_time_all) * 1000 / dataset_num))
+    if torch.cuda.is_available():
+        print('AdaptCLIP GPU Memory: {:.2f} MB (Allocated), {:.2f} MB (Reserved)'.format(
+            torch.cuda.max_memory_allocated() / 1024 / 1024,
+            torch.cuda.max_memory_reserved() / 1024 / 1024
+        ))
 
     # ====================== Evaluation ======================
     results_eval = dict(sample_ids=sample_ids, gt_masks=gt_masks, pr_masks=pr_masks, cls_names=cls_names, gt_anomalys=gt_anomalys, pr_anomalys=pr_anomalys, query_paths=query_paths)

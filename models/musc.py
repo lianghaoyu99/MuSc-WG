@@ -23,6 +23,7 @@ from models.modules._LNAMD import LNAMD
 from models.modules.WTConvStatic import WTConvLNAMDStatic
 from models.modules._MSM import MSM
 from models.modules._RsCIN import RsCIN
+from models.modules._Optimization import AnomalyMapOptimizer
 from utils.metrics import compute_metrics
 from openpyxl import Workbook
 from tqdm import tqdm
@@ -269,26 +270,33 @@ class MuSc():
                 # print(f"Using WTConvLNAMD with r={r} (Note: WTConv has random weights if not trained)")
                 # LNAMD_r = WTConvLNAMD(device=self.device, feature_dim=feature_dim, feature_layer=self.features_list, r=r)
                 
-                # --- ABLATION STUDY CONFIGURATION ---
-                # Change these values to test different settings:
-                ablation_wt_type = 'db1'    # 'db1' (Haar), 'db2', 'sym2', 'coif1', etc.
-                ablation_padding = 'reflect'    # 'reflect', 'zeros', 'replicate'
-                ablation_level0  = False        # True: include original features, False: context only
+                # --- ABLATION STUDY CONFIGURATION (OPTIMIZED) ---
+                # Optimized for: Zipper (Multi-defect visibility), Capsule (Noise), LED (Whole Region)
+                ablation_wt_type = 'db1'        # Haar wavelet for sharp edge detection
+                ablation_padding = 'reflect'
+                ablation_level0  = False        # Processed features only
                 
-                # Band-Pass / High-Pass Configuration
-                ablation_use_details = True     # True: Enable Band-Pass (aggregate LH, HL, HH details)
-                ablation_detail_start = 1       # 1: Skip Level 0 (Noise). Use Level 1+ Details.
-                ablation_keep_ll = True         # True: Keep Background Context (LL). False: High-Pass only (Edges).
+                # Band-Pass / Frequency Configuration:
+                # 1. Enable Details (High Freq) starting from Level 1 (Skip Level 0 to avoid noise).
+                # 2. Keep LL (Low Freq) to capture global color/region shifts (LED).
+                ablation_use_details = True     
+                ablation_detail_start = 1       # 1: Skip Level 0 (Noise)
+                ablation_keep_ll = True         # True: Include Low Frequency Approximation
 
-                ablation_intra_weight = False   # True: Use intra-image self-similarity weighting to suppress background
-                ablation_gamma   = 2.0          # Gamma scaling to suppress secondary anomalies (e.g., 2.0 - 4.0)
+                ablation_gamma   = 2.0          # Moderate Gamma
+                ablation_use_spot_weight = True  # Suppress patterns found in ANY other image (Occasional Normal Pattern)
+                ablation_use_morphology = True  # Toggle for Morphological Optimization (Opening/Closing + Smoothing)
+                
+                # Morphological Parameters
+                ablation_morph_open_k = 1       # Opening kernel size (remove noise). 1 = disabled.
+                ablation_morph_close_k = 3      # Closing kernel size (fill gaps). 3 is gentle.
+                ablation_morph_smooth_k = 3     # Gaussian smoothing kernel size (remove blockiness).
+                ablation_morph_sigma = 0.5      # Gaussian blur standard deviation.
                 
                 # print(f"Using Original LNAMD with r={r}, intra_weight={ablation_intra_weight}, gamma={ablation_gamma}")
                 # LNAMD_r = LNAMD(device=self.device, r=r, feature_dim=feature_dim, feature_layer=self.features_list)
-                
-                print(f"Using WTConvLNAMDStatic with r={r}, wt={ablation_wt_type}, pad={ablation_padding}, level0={ablation_level0}, "
-                      f"bandpass={ablation_use_details}(start={ablation_detail_start}, keep_ll={ablation_keep_ll}), "
-                      f"intra_weight={ablation_intra_weight}, gamma={ablation_gamma}")
+
+                print(f"Using WTConvLNAMDStatic with r={r}, wt={ablation_wt_type}, bandpass={ablation_use_details}(start={ablation_detail_start}, keep_ll={ablation_keep_ll})")
                 LNAMD_r = WTConvLNAMDStatic(device=self.device, feature_dim=feature_dim, feature_layer=self.features_list, r=r,
                                             wt_type=ablation_wt_type, padding_mode=ablation_padding, include_level0=ablation_level0,
                                             use_details=ablation_use_details, detail_start_level=ablation_detail_start, keep_ll=ablation_keep_ll)
@@ -341,8 +349,19 @@ class MuSc():
                     # different layers
                     Z = torch.cat(Z_layers[l], dim=0).to(self.device) # (N, L, C) 将所有批次的该层特征拼接
                     print('layer-{} mutual scoring...'.format(l))
+                    
+                    # Apply spot weighting conditionally
+                    current_use_spot_weight = ablation_use_spot_weight
+                    if current_use_spot_weight:
+                        # Only apply if using WTConvLNAMDStatic and for specific categories
+                        is_wtconv = isinstance(LNAMD_r, WTConvLNAMDStatic)
+                        is_target_category = (self.dataset == 'mvtec_ad' and category in ['screw', 'toothbrush', 'zipper'])
+                        
+                        if not (is_wtconv and is_target_category):
+                            current_use_spot_weight = False
+                            
                     anomaly_maps_msm = MSM(Z=Z, device=self.device, topmin_min=0, topmin_max=0.3, 
-                                           use_intra_weight=ablation_intra_weight, gamma=ablation_gamma)  #调用MSM算法生成异常图（同一层互相计算）
+                                           gamma=ablation_gamma, use_spot_weight=current_use_spot_weight)  #调用MSM算法生成异常图（同一层互相计算）
                     anomaly_maps_l = torch.cat((anomaly_maps_l, anomaly_maps_msm.unsqueeze(0).cpu()), dim=0)  # 存储不同层的MSM异常图结果
                     torch.cuda.empty_cache()
                 anomaly_maps_l = torch.mean(anomaly_maps_l, 0)  # 将不同层的MSM异常图结果平均融合
@@ -350,15 +369,35 @@ class MuSc():
                 end_time = time.time()
                 print('MSM: {}ms per image'.format((end_time-start_time)*1000/subset_num))
             anomaly_maps_iter = torch.mean(anomaly_maps_r, 0).to(self.device)  # 对不同r的异常图取平均
+            
+            # anomaly_maps_iter current shape: (B, L) where L is flattened H*W
+            B, L = anomaly_maps_iter.shape
+            H = int(np.sqrt(L))
+            W = H
+            
+            # Reshape to (B, 1, H, W) for morphological optimization or direct interpolation
+            anomaly_maps_iter_spatial = anomaly_maps_iter.view(B, 1, H, W)
+            
+            # --- MORPHOLOGICAL OPTIMIZATION ---
+            if ablation_use_morphology:
+                # Use very conservative morphological parameters to preserve defect textures:
+                # - Opening (remove noise): kernel 1 (effectively disabled) to avoid losing fine details like Zipper teeth
+                # - Closing (fill gaps): kernel 3 (small) to fill tiny holes without turning structures into big blobs
+                # - Smoothing: kernel 3, sigma 0.5 (very light blur) just to soften max-pool edges, not the whole map
+                optimizer = AnomalyMapOptimizer(kernel_size_open=ablation_morph_open_k, 
+                                                kernel_size_close=ablation_morph_close_k, 
+                                                smooth_kernel_size=ablation_morph_smooth_k, 
+                                                sigma=ablation_morph_sigma).to(self.device)
+                anomaly_maps_iter_spatial = optimizer(anomaly_maps_iter_spatial)
+            
             del anomaly_maps_r
             torch.cuda.empty_cache()
 
             # interpolate 异常图上采样
-            B, L = anomaly_maps_iter.shape
-            H = int(np.sqrt(L))
-            anomaly_maps_iter = F.interpolate(anomaly_maps_iter.view(B, 1, H, H),
+            # anomaly_maps_iter_spatial: (B, 1, H, W) -> interpolate directly
+            anomaly_maps_iter = F.interpolate(anomaly_maps_iter_spatial,
                                         size=self.image_size, mode='bilinear', align_corners=True)  # 双线性插值上采样
-            anomaly_maps = torch.cat((anomaly_maps, anomaly_maps_iter.cpu()), dim=0)  # 存储所有划分子集的结果
+            anomaly_maps = torch.cat((anomaly_maps, anomaly_maps_iter.squeeze(1).cpu()), dim=0)  # 存储所有划分子集的结果
 
         # save image features for optimizing classification
         # cls_save_path = os.path.join('./image_features/{}_{}.dat'.format(dataset, category))

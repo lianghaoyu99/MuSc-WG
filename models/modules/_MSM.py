@@ -7,7 +7,7 @@ The above commented out function provides faster speeds, but because more tensor
 By default, our program uses the following function, which is slower but consumes less GPU memory.
 """
 
-def compute_scores_fast(Z, i, device, topmin_min=0, topmin_max=0.3, use_intra_weight=False, gamma=1.0):
+def compute_scores_fast(Z, i, device, topmin_min=0, topmin_max=0.3, gamma=1.0, use_spot_weight=False):
     # speed fast but space large
     # compute anomaly scores
     image_num, patch_num, c = Z.shape
@@ -24,31 +24,24 @@ def compute_scores_fast(Z, i, device, topmin_min=0, topmin_max=0.3, use_intra_we
         k_min = int(patch2image.shape[1]*k_min)
     if k_max < k_min:
         k_max, k_min = k_min, k_max
+    
+    # Get Top K nearest neighbors
     vals, _ = torch.topk(patch2image.float(), k_max, largest=False, sorted=True)
+    
+    # Capture nearest neighbor distance for Spot Weighting (Rare Pattern Suppression)
+    d_nearest = vals[:, 0]
+
+    # Interval processing: Keep range [k_min, k_max]
     vals, _ = torch.topk(vals.float(), k_max-k_min, largest=True, sorted=True)
     patch2image = vals.clone()
     score = torch.mean(patch2image, dim=1)
 
-    if use_intra_weight:
-        # Intra-image weighting to suppress background noise
-        # Compute self-similarity: nearest neighbor distance within the image itself
-        intra_dist = torch.cdist(Z[i], Z[i])  # (Patch_Num, Patch_Num)
-        intra_dist.fill_diagonal_(float('inf'))  # Ignore self-loop
-        min_intra_dist = torch.min(intra_dist, dim=1)[0]  # (Patch_Num,)
-        
-        # Normalize weights to [0.5, 1.0]
-        # Smaller distance (background) -> Smaller weight
-        # Larger distance (anomaly) -> Larger weight
-        dist_min = min_intra_dist.min()
-        dist_max = min_intra_dist.max()
-        if dist_max - dist_min > 1e-6:
-            w = (min_intra_dist - dist_min) / (dist_max - dist_min)
-        else:
-            w = torch.ones_like(min_intra_dist)
-        
-        # Soft weighting: range [0.5, 1.0]
-        w = 0.5 * w + 0.5
-        score = score * w
+    # Spot Weighting: Suppress "Occasional Normal Patterns"
+    # If a patch matches VERY well with at least one other image (d_nearest is small),
+    # we reduce its score, even if the average distance (score) is high.
+    # We use Geometric Mean: sqrt(Interval_Score * Nearest_Score)
+    if use_spot_weight:
+        score = torch.sqrt(score * d_nearest)
 
     # Gamma Scaling to suppress secondary anomalies
     if gamma != 1.0:
@@ -83,11 +76,11 @@ def compute_scores_slow(Z, i, device, topmin_min=0, topmin_max=0.3):
     patch2image = vals.clone()
     return torch.mean(patch2image, dim=1)
 
-def MSM(Z, device, topmin_min=0, topmin_max=0.3, use_intra_weight=False, gamma=1.0):
+def MSM(Z, device, topmin_min=0, topmin_max=0.3, gamma=1.0, use_spot_weight=False):
     anomaly_scores_matrix = torch.tensor([]).double().to(device)
     for i in tqdm(range(Z.shape[0])):  # 遍历N个样本
     # for i in range(Z.shape[0]):
-        anomaly_scores_i = compute_scores_fast(Z, i, device, topmin_min, topmin_max, use_intra_weight, gamma).unsqueeze(0)  # 计算样本i的异常得分（欧氏距离矩阵）
+        anomaly_scores_i = compute_scores_fast(Z, i, device, topmin_min, topmin_max, gamma, use_spot_weight).unsqueeze(0)  # 计算样本i的异常得分（欧氏距离矩阵）
         anomaly_scores_matrix = torch.cat((anomaly_scores_matrix, anomaly_scores_i.double()), dim=0)    # (N, B)
     return anomaly_scores_matrix
 

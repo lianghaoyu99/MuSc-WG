@@ -1,0 +1,266 @@
+26-03-24 10:45:39.729 - INFO: batch_size = 1
+26-03-24 10:45:39.731 - INFO: ckt_path = ./weights/pretrained_visa_clinicdb.pth
+26-03-24 10:45:39.731 - INFO: class_name = candle
+26-03-24 10:45:39.732 - INFO: image_path = asset/img.png
+26-03-24 10:45:39.732 - INFO: image_size = 518
+26-03-24 10:45:39.732 - INFO: k_clusters = 20
+26-03-24 10:45:39.734 - INFO: model = ViT-L-14-336
+26-03-24 10:45:39.734 - INFO: obj_name = all
+26-03-24 10:45:39.734 - INFO: prompting_branch = VL
+26-03-24 10:45:39.736 - INFO: prompting_depth = 4
+26-03-24 10:45:39.736 - INFO: prompting_length = 5
+26-03-24 10:45:39.737 - INFO: prompting_type = SD
+26-03-24 10:45:39.737 - INFO: save_fig = False
+26-03-24 10:45:39.739 - INFO: save_name = test.png
+26-03-24 10:45:39.739 - INFO: save_path = ../../output/AdaCLIP/mvtec/zero_shot_all
+26-03-24 10:45:39.751 - INFO: testing_data = mvtec
+26-03-24 10:45:39.752 - INFO: testing_model = dataset
+26-03-24 10:45:39.753 - INFO: use_hsf = True
+26-03-24 10:47:32.805 - INFO: batch_size = 1
+26-03-24 10:47:32.805 - INFO: ckt_path = ./weights/pretrained_visa_clinicdb.pth
+26-03-24 10:47:32.805 - INFO: class_name = candle
+26-03-24 10:47:32.806 - INFO: image_path = asset/img.png
+26-03-24 10:47:32.806 - INFO: image_size = 518
+26-03-24 10:47:32.808 - INFO: k_clusters = 20
+26-03-24 10:47:32.808 - INFO: model = ViT-L-14-336
+26-03-24 10:47:32.810 - INFO: obj_name = all
+26-03-24 10:47:32.810 - INFO: prompting_branch = VL
+26-03-24 10:47:32.810 - INFO: prompting_depth = 4
+26-03-24 10:47:32.811 - INFO: prompting_length = 5
+26-03-24 10:47:32.811 - INFO: prompting_type = SD
+26-03-24 10:47:32.813 - INFO: save_fig = False
+26-03-24 10:47:32.813 - INFO: save_name = test.png
+26-03-24 10:47:32.813 - INFO: save_path = ../../output/AdaCLIP/mvtec/zero_shot_all
+26-03-24 10:47:32.814 - INFO: testing_data = mvtec
+26-03-24 10:47:32.814 - INFO: testing_model = dataset
+26-03-24 10:47:32.816 - INFO: use_hsf = True
+26-03-24 11:41:01.013 - INFO:          bottle 		I-Auroc:97.22 	I-F1:95.00 	I-AP:99.14 	P-Auroc:86.48 	P-F1:60.95 	P-AP:61.07
+26-03-24 11:41:01.025 - INFO:           cable 		I-Auroc:81.32 	I-F1:80.21 	I-AP:88.83 	P-Auroc:69.46 	P-F1:25.41 	P-AP:16.90
+26-03-24 11:41:01.026 - INFO:         capsule 		I-Auroc:84.90 	I-F1:90.46 	I-AP:96.83 	P-Auroc:93.56 	P-F1:36.28 	P-AP:31.02
+26-03-24 11:41:01.026 - INFO:          carpet 		I-Auroc:99.86 	I-F1:99.44 	I-AP:99.95 	P-Auroc:99.00 	P-F1:71.20 	P-AP:76.38
+26-03-24 11:41:01.028 - INFO:            grid 		I-Auroc:92.44 	I-F1:94.02 	I-AP:96.99 	P-Auroc:97.24 	P-F1:41.52 	P-AP:36.80
+26-03-24 11:41:01.028 - INFO:        hazelnut 		I-Auroc:60.16 	I-F1:77.91 	I-AP:72.97 	P-Auroc:95.62 	P-F1:32.28 	P-AP:28.91
+26-03-24 11:41:01.030 - INFO:         leather 		I-Auroc:100.00 	I-F1:100.00 	I-AP:100.00 	P-Auroc:99.32 	P-F1:52.42 	P-AP:56.55
+26-03-24 11:41:01.031 - INFO:       metal_nut 		I-Auroc:54.52 	I-F1:89.42 	I-AP:86.61 	P-Auroc:72.03 	P-F1:34.18 	P-AP:22.63
+26-03-24 11:41:01.031 - INFO:            pill 		I-Auroc:88.00 	I-F1:92.15 	I-AP:97.66 	P-Auroc:87.21 	P-F1:34.87 	P-AP:32.02
+26-03-24 11:41:01.033 - INFO:           screw 		I-Auroc:85.78 	I-F1:89.31 	I-AP:94.54 	P-Auroc:97.78 	P-F1:30.01 	P-AP:24.42
+26-03-24 11:41:01.033 - INFO:            tile 		I-Auroc:99.48 	I-F1:97.65 	I-AP:99.79 	P-Auroc:87.53 	P-F1:63.34 	P-AP:63.90
+26-03-24 11:41:01.033 - INFO:      toothbrush 		I-Auroc:93.33 	I-F1:93.75 	I-AP:97.05 	P-Auroc:92.96 	P-F1:33.67 	P-AP:28.43
+26-03-24 11:41:01.034 - INFO:      transistor 		I-Auroc:76.46 	I-F1:68.57 	I-AP:77.81 	P-Auroc:57.78 	P-F1:16.39 	P-AP:9.20
+26-03-24 11:41:01.034 - INFO:            wood 		I-Auroc:97.32 	I-F1:95.87 	I-AP:99.16 	P-Auroc:95.49 	P-F1:58.72 	P-AP:61.39
+26-03-24 11:41:01.036 - INFO:          zipper 		I-Auroc:87.49 	I-F1:89.88 	I-AP:96.50 	P-Auroc:95.94 	P-F1:60.52 	P-AP:58.77
+26-03-24 11:41:01.036 - INFO:         Average 		I-Auroc:86.55 	I-F1:90.24 	I-AP:93.59 	P-Auroc:88.49 	P-F1:43.45 	P-AP:40.56
+26-03-24 11:43:30.581 - INFO: batch_size = 1
+26-03-24 11:43:30.581 - INFO: ckt_path = ./weights/pretrained_visa_clinicdb.pth
+26-03-24 11:43:30.583 - INFO: class_name = candle
+26-03-24 11:43:30.583 - INFO: image_path = asset/img.png
+26-03-24 11:43:30.585 - INFO: image_size = 518
+26-03-24 11:43:30.585 - INFO: k_clusters = 20
+26-03-24 11:43:30.585 - INFO: model = ViT-L-14-336
+26-03-24 11:43:30.586 - INFO: obj_name = transistor
+26-03-24 11:43:30.586 - INFO: prompting_branch = VL
+26-03-24 11:43:30.588 - INFO: prompting_depth = 4
+26-03-24 11:43:30.588 - INFO: prompting_length = 5
+26-03-24 11:43:30.589 - INFO: prompting_type = SD
+26-03-24 11:43:30.589 - INFO: save_fig = False
+26-03-24 11:43:30.591 - INFO: save_name = test.png
+26-03-24 11:43:30.591 - INFO: save_path = ../../output/AdaCLIP/mvtec/zero_shot_transistor
+26-03-24 11:43:30.592 - INFO: testing_data = mvtec
+26-03-24 11:43:30.592 - INFO: testing_model = dataset
+26-03-24 11:43:30.592 - INFO: use_hsf = True
+26-03-24 11:46:44.180 - INFO:      transistor 		I-Auroc:77.35 	I-F1:70.42 	I-AP:78.96 	P-Auroc:57.78 	P-F1:16.39 	P-AP:9.20
+26-03-24 11:46:44.180 - INFO:         Average 		I-Auroc:77.35 	I-F1:70.42 	I-AP:78.96 	P-Auroc:57.78 	P-F1:16.39 	P-AP:9.20
+26-03-24 11:59:58.469 - INFO: batch_size = 1
+26-03-24 11:59:58.471 - INFO: ckt_path = ./weights/pretrained_mvtec_colondb.pth
+26-03-24 11:59:58.471 - INFO: class_name = candle
+26-03-24 11:59:58.472 - INFO: image_path = asset/img.png
+26-03-24 11:59:58.472 - INFO: image_size = 518
+26-03-24 11:59:58.474 - INFO: k_clusters = 20
+26-03-24 11:59:58.474 - INFO: model = ViT-L-14-336
+26-03-24 11:59:58.475 - INFO: obj_name = transistor
+26-03-24 11:59:58.477 - INFO: prompting_branch = VL
+26-03-24 11:59:58.477 - INFO: prompting_depth = 4
+26-03-24 11:59:58.478 - INFO: prompting_length = 5
+26-03-24 11:59:58.478 - INFO: prompting_type = SD
+26-03-24 11:59:58.480 - INFO: save_fig = False
+26-03-24 11:59:58.480 - INFO: save_name = test.png
+26-03-24 11:59:58.481 - INFO: save_path = ../../output/AdaCLIP/mvtec/zero_shot_transistor
+26-03-24 11:59:58.481 - INFO: testing_data = mvtec
+26-03-24 11:59:58.483 - INFO: testing_model = dataset
+26-03-24 11:59:58.483 - INFO: use_hsf = True
+26-03-24 12:03:35.624 - INFO:      transistor 		I-Auroc:36.08 	I-F1:57.14 	I-AP:39.14 	P-Auroc:40.78 	P-F1:9.15 	P-AP:4.18
+26-03-24 12:03:35.624 - INFO:         Average 		I-Auroc:36.08 	I-F1:57.14 	I-AP:39.14 	P-Auroc:40.78 	P-F1:9.15 	P-AP:4.18
+26-03-24 16:45:48.666 - INFO: batch_size = 1
+26-03-24 16:45:48.670 - INFO: ckt_path = ./weights/pretrained_visa_clinicdb.pth
+26-03-24 16:45:48.670 - INFO: class_name = candle
+26-03-24 16:45:48.671 - INFO: image_path = asset/img.png
+26-03-24 16:45:48.671 - INFO: image_size = 518
+26-03-24 16:45:48.673 - INFO: k_clusters = 20
+26-03-24 16:45:48.673 - INFO: model = ViT-L-14-336
+26-03-24 16:45:48.673 - INFO: obj_name = transistor
+26-03-24 16:45:48.674 - INFO: prompting_branch = VL
+26-03-24 16:45:48.674 - INFO: prompting_depth = 4
+26-03-24 16:45:48.674 - INFO: prompting_length = 5
+26-03-24 16:45:48.676 - INFO: prompting_type = SD
+26-03-24 16:45:48.676 - INFO: save_fig = False
+26-03-24 16:45:48.677 - INFO: save_name = test.png
+26-03-24 16:45:48.677 - INFO: save_path = ../../output/AdaCLIP/mvtec/zero_shot_transistor
+26-03-24 16:45:48.679 - INFO: testing_data = mvtec
+26-03-24 16:45:48.679 - INFO: testing_model = dataset
+26-03-24 16:45:48.679 - INFO: use_hsf = True
+26-03-24 16:49:10.760 - INFO:      transistor 		I-Auroc:77.35 	I-F1:70.42 	I-AP:78.96 	P-Auroc:57.78 	P-F1:16.39 	P-AP:9.20
+26-03-24 16:49:10.760 - INFO:         Average 		I-Auroc:77.35 	I-F1:70.42 	I-AP:78.96 	P-Auroc:57.78 	P-F1:16.39 	P-AP:9.20
+26-03-24 17:17:40.107 - INFO: batch_size = 1
+26-03-24 17:17:40.107 - INFO: ckt_path = ./weights/pretrained_visa_clinicdb.pth
+26-03-24 17:17:40.109 - INFO: class_name = candle
+26-03-24 17:17:40.109 - INFO: image_path = asset/img.png
+26-03-24 17:17:40.110 - INFO: image_size = 518
+26-03-24 17:17:40.111 - INFO: k_clusters = 20
+26-03-24 17:17:40.112 - INFO: model = ViT-L-14-336
+26-03-24 17:17:40.112 - INFO: obj_name = all
+26-03-24 17:17:40.113 - INFO: prompting_branch = VL
+26-03-24 17:17:40.113 - INFO: prompting_depth = 4
+26-03-24 17:17:40.115 - INFO: prompting_length = 5
+26-03-24 17:17:40.115 - INFO: prompting_type = SD
+26-03-24 17:17:40.116 - INFO: save_fig = False
+26-03-24 17:17:40.116 - INFO: save_name = test.png
+26-03-24 17:17:40.118 - INFO: save_path = ../../output/AdaCLIP/mvtec/zero_shot_all
+26-03-24 17:17:40.118 - INFO: testing_data = mvtec
+26-03-24 17:17:40.119 - INFO: testing_model = dataset
+26-03-24 17:17:40.119 - INFO: use_hsf = True
+26-03-24 17:36:43.314 - INFO: batch_size = 1
+26-03-24 17:36:43.315 - INFO: ckt_path = ./weights/pretrained_visa_clinicdb.pth
+26-03-24 17:36:43.315 - INFO: class_name = candle
+26-03-24 17:36:43.317 - INFO: image_path = asset/img.png
+26-03-24 17:36:43.317 - INFO: image_size = 518
+26-03-24 17:36:43.318 - INFO: k_clusters = 20
+26-03-24 17:36:43.319 - INFO: model = ViT-L-14-336
+26-03-24 17:36:43.319 - INFO: obj_name = transistor
+26-03-24 17:36:43.320 - INFO: prompting_branch = VL
+26-03-24 17:36:43.320 - INFO: prompting_depth = 4
+26-03-24 17:36:43.321 - INFO: prompting_length = 5
+26-03-24 17:36:43.321 - INFO: prompting_type = SD
+26-03-24 17:36:43.323 - INFO: save_fig = False
+26-03-24 17:36:43.323 - INFO: save_name = test.png
+26-03-24 17:36:43.324 - INFO: save_path = ../../output/AdaCLIP/mvtec/zero_shot_transistor
+26-03-24 17:36:43.324 - INFO: testing_data = mvtec
+26-03-24 17:36:43.324 - INFO: testing_model = dataset
+26-03-24 17:36:43.326 - INFO: use_hsf = True
+26-03-24 17:40:02.975 - INFO:      transistor 		I-Auroc:86.50 	I-F1:77.78 	I-AP:87.22 	P-Auroc:57.75 	P-F1:17.34 	P-AP:10.91
+26-03-24 17:40:02.975 - INFO:         Average 		I-Auroc:86.50 	I-F1:77.78 	I-AP:87.22 	P-Auroc:57.75 	P-F1:17.34 	P-AP:10.91
+26-03-24 17:43:46.001 - INFO: batch_size = 1
+26-03-24 17:43:46.003 - INFO: ckt_path = ./weights/pretrained_visa_clinicdb.pth
+26-03-24 17:43:46.003 - INFO: class_name = candle
+26-03-24 17:43:46.005 - INFO: image_path = asset/img.png
+26-03-24 17:43:46.006 - INFO: image_size = 518
+26-03-24 17:43:46.006 - INFO: k_clusters = 20
+26-03-24 17:43:46.006 - INFO: model = ViT-L-14-336
+26-03-24 17:43:46.008 - INFO: obj_name = bottle
+26-03-24 17:43:46.008 - INFO: prompting_branch = VL
+26-03-24 17:43:46.008 - INFO: prompting_depth = 4
+26-03-24 17:43:46.009 - INFO: prompting_length = 5
+26-03-24 17:43:46.009 - INFO: prompting_type = SD
+26-03-24 17:43:46.011 - INFO: save_fig = False
+26-03-24 17:43:46.011 - INFO: save_name = test.png
+26-03-24 17:43:46.011 - INFO: save_path = ../../output/AdaCLIP/mvtec/zero_shot_bottle
+26-03-24 17:43:46.012 - INFO: testing_data = mvtec
+26-03-24 17:43:46.012 - INFO: testing_model = dataset
+26-03-24 17:43:46.012 - INFO: use_hsf = True
+26-03-24 17:46:33.880 - INFO:          bottle 		I-Auroc:97.94 	I-F1:96.77 	I-AP:99.40 	P-Auroc:90.78 	P-F1:60.79 	P-AP:62.48
+26-03-24 17:46:33.881 - INFO:         Average 		I-Auroc:97.94 	I-F1:96.77 	I-AP:99.40 	P-Auroc:90.78 	P-F1:60.79 	P-AP:62.48
+26-03-24 21:16:51.640 - INFO: batch_size = 1
+26-03-24 21:16:51.642 - INFO: ckt_path = ./weights/pretrained_visa_clinicdb.pth
+26-03-24 21:16:51.642 - INFO: class_name = candle
+26-03-24 21:16:51.642 - INFO: image_path = asset/img.png
+26-03-24 21:16:51.644 - INFO: image_size = 518
+26-03-24 21:16:51.644 - INFO: k_clusters = 20
+26-03-24 21:16:51.645 - INFO: model = ViT-L-14-336
+26-03-24 21:16:51.645 - INFO: obj_name = all
+26-03-24 21:16:51.647 - INFO: prompting_branch = VL
+26-03-24 21:16:51.647 - INFO: prompting_depth = 4
+26-03-24 21:16:51.647 - INFO: prompting_length = 5
+26-03-24 21:16:51.648 - INFO: prompting_type = SD
+26-03-24 21:16:51.649 - INFO: save_fig = False
+26-03-24 21:16:51.649 - INFO: save_name = test.png
+26-03-24 21:16:51.650 - INFO: save_path = ../../output/AdaCLIP/mvtec/zero_shot_all
+26-03-24 21:16:51.650 - INFO: testing_data = mvtec
+26-03-24 21:16:51.650 - INFO: testing_model = dataset
+26-03-24 21:16:51.651 - INFO: use_hsf = True
+26-03-24 21:37:00.132 - INFO:          bottle 		I-Auroc:97.94 	I-F1:96.77 	I-AP:99.40 	P-Auroc:90.78 	P-F1:60.79 	P-AP:62.48
+26-03-24 21:37:00.132 - INFO:           cable 		I-Auroc:64.81 	I-F1:76.03 	I-AP:79.59 	P-Auroc:78.27 	P-F1:26.55 	P-AP:20.20
+26-03-24 21:37:00.134 - INFO:         capsule 		I-Auroc:83.49 	I-F1:91.45 	I-AP:96.30 	P-Auroc:95.21 	P-F1:35.91 	P-AP:30.74
+26-03-24 21:37:00.134 - INFO:          carpet 		I-Auroc:100.00 	I-F1:100.00 	I-AP:100.00 	P-Auroc:98.92 	P-F1:67.36 	P-AP:70.93
+26-03-24 21:37:00.135 - INFO:            grid 		I-Auroc:98.08 	I-F1:97.44 	I-AP:99.27 	P-Auroc:97.03 	P-F1:39.02 	P-AP:34.22
+26-03-24 21:37:00.135 - INFO:        hazelnut 		I-Auroc:87.04 	I-F1:85.11 	I-AP:93.04 	P-Auroc:96.54 	P-F1:42.11 	P-AP:42.52
+26-03-24 21:37:00.135 - INFO:         leather 		I-Auroc:99.83 	I-F1:99.46 	I-AP:99.94 	P-Auroc:99.29 	P-F1:47.70 	P-AP:50.97
+26-03-24 21:37:00.137 - INFO:       metal_nut 		I-Auroc:66.42 	I-F1:89.42 	I-AP:92.06 	P-Auroc:74.42 	P-F1:35.27 	P-AP:24.46
+26-03-24 21:37:00.137 - INFO:            pill 		I-Auroc:89.03 	I-F1:93.65 	I-AP:97.58 	P-Auroc:87.72 	P-F1:35.69 	P-AP:32.20
+26-03-24 21:37:00.139 - INFO:           screw 		I-Auroc:87.68 	I-F1:89.84 	I-AP:94.70 	P-Auroc:98.25 	P-F1:38.48 	P-AP:34.64
+26-03-24 21:37:00.139 - INFO:            tile 		I-Auroc:99.93 	I-F1:99.40 	I-AP:99.97 	P-Auroc:91.13 	P-F1:61.88 	P-AP:63.89
+26-03-24 21:37:00.139 - INFO:      toothbrush 		I-Auroc:91.94 	I-F1:91.23 	I-AP:97.26 	P-Auroc:94.71 	P-F1:37.87 	P-AP:34.62
+26-03-24 21:37:00.140 - INFO:      transistor 		I-Auroc:87.33 	I-F1:80.00 	I-AP:87.93 	P-Auroc:57.75 	P-F1:17.34 	P-AP:10.91
+26-03-24 21:37:00.140 - INFO:            wood 		I-Auroc:99.04 	I-F1:96.72 	I-AP:99.71 	P-Auroc:92.57 	P-F1:55.97 	P-AP:56.38
+26-03-24 21:37:00.142 - INFO:          zipper 		I-Auroc:98.95 	I-F1:98.33 	I-AP:99.72 	P-Auroc:95.80 	P-F1:57.26 	P-AP:54.65
+26-03-24 21:37:00.142 - INFO:         Average 		I-Auroc:90.10 	I-F1:92.32 	I-AP:95.77 	P-Auroc:89.89 	P-F1:43.95 	P-AP:41.59
+26-03-24 23:35:30.531 - INFO: batch_size = 1
+26-03-24 23:35:30.533 - INFO: ckt_path = ./weights/pretrained_visa_clinicdb.pth
+26-03-24 23:35:30.533 - INFO: class_name = candle
+26-03-24 23:35:30.534 - INFO: image_path = asset/img.png
+26-03-24 23:35:30.534 - INFO: image_size = 518
+26-03-24 23:35:30.534 - INFO: k_clusters = 20
+26-03-24 23:35:30.536 - INFO: model = ViT-L-14-336
+26-03-24 23:35:30.536 - INFO: obj_name = all
+26-03-24 23:35:30.536 - INFO: prompting_branch = VL
+26-03-24 23:35:30.537 - INFO: prompting_depth = 4
+26-03-24 23:35:30.537 - INFO: prompting_length = 5
+26-03-24 23:35:30.539 - INFO: prompting_type = SD
+26-03-24 23:35:30.539 - INFO: save_fig = False
+26-03-24 23:35:30.539 - INFO: save_name = test.png
+26-03-24 23:35:30.541 - INFO: save_path = ../../output/AdaCLIP/microled/zero_shot_all
+26-03-24 23:35:30.541 - INFO: testing_data = microled
+26-03-24 23:35:30.542 - INFO: testing_model = dataset
+26-03-24 23:35:30.542 - INFO: use_hsf = True
+26-03-25 00:02:53.391 - INFO: microled_TypeA_1 		I-Auroc:78.80 	I-F1:70.33 	I-AP:78.53 	P-Auroc:92.95 	P-F1:30.56 	P-AP:27.31
+26-03-25 00:02:53.391 - INFO: microled_TypeA_2 		I-Auroc:67.28 	I-F1:65.00 	I-AP:61.66 	P-Auroc:81.56 	P-F1:8.16 	P-AP:3.99
+26-03-25 00:02:53.391 - INFO: microled_TypeA_3 		I-Auroc:67.44 	I-F1:62.16 	I-AP:62.31 	P-Auroc:80.87 	P-F1:9.27 	P-AP:2.54
+26-03-25 00:02:53.392 - INFO: microled_TypeA_4 		I-Auroc:76.64 	I-F1:65.19 	I-AP:73.26 	P-Auroc:84.73 	P-F1:16.36 	P-AP:11.96
+26-03-25 00:02:53.392 - INFO: microled_TypeA_5 		I-Auroc:65.28 	I-F1:59.57 	I-AP:61.28 	P-Auroc:73.79 	P-F1:9.98 	P-AP:6.37
+26-03-25 00:02:53.394 - INFO: microled_TypeA_6 		I-Auroc:65.28 	I-F1:61.08 	I-AP:56.31 	P-Auroc:73.48 	P-F1:8.11 	P-AP:4.41
+26-03-25 00:02:53.394 - INFO: microled_TypeA_7 		I-Auroc:67.38 	I-F1:63.41 	I-AP:60.77 	P-Auroc:90.91 	P-F1:27.61 	P-AP:23.84
+26-03-25 00:02:53.394 - INFO: microled_TypeA_8 		I-Auroc:61.37 	I-F1:61.54 	I-AP:53.46 	P-Auroc:85.75 	P-F1:14.96 	P-AP:11.44
+26-03-25 00:02:53.396 - INFO: microled_TypeA_9 		I-Auroc:81.30 	I-F1:69.35 	I-AP:76.61 	P-Auroc:77.14 	P-F1:11.94 	P-AP:7.08
+26-03-25 00:02:53.396 - INFO: microled_TypeA_10 		I-Auroc:58.29 	I-F1:59.22 	I-AP:53.48 	P-Auroc:77.45 	P-F1:6.40 	P-AP:2.43
+26-03-25 00:02:53.396 - INFO: microled_TypeA_11 		I-Auroc:64.08 	I-F1:60.76 	I-AP:59.96 	P-Auroc:83.52 	P-F1:15.45 	P-AP:9.80
+26-03-25 00:02:53.397 - INFO: microled_TypeA_12 		I-Auroc:60.73 	I-F1:59.46 	I-AP:55.30 	P-Auroc:83.27 	P-F1:10.27 	P-AP:6.73
+26-03-25 00:02:53.397 - INFO: microled_TypeA_13 		I-Auroc:70.51 	I-F1:63.57 	I-AP:65.26 	P-Auroc:62.55 	P-F1:4.23 	P-AP:1.54
+26-03-25 00:02:53.399 - INFO: microled_TypeA_14 		I-Auroc:58.36 	I-F1:58.14 	I-AP:52.99 	P-Auroc:70.96 	P-F1:7.60 	P-AP:2.73
+26-03-25 00:02:53.399 - INFO: microled_TypeA_15 		I-Auroc:56.26 	I-F1:60.12 	I-AP:49.56 	P-Auroc:75.75 	P-F1:6.09 	P-AP:2.59
+26-03-25 00:02:53.399 - INFO: microled_TypeA_16 		I-Auroc:52.02 	I-F1:59.55 	I-AP:46.03 	P-Auroc:86.81 	P-F1:13.21 	P-AP:7.72
+26-03-25 00:02:53.400 - INFO: microled_TypeA_17 		I-Auroc:67.19 	I-F1:60.47 	I-AP:62.05 	P-Auroc:85.26 	P-F1:18.73 	P-AP:12.23
+26-03-25 00:02:53.400 - INFO: microled_TypeA_18 		I-Auroc:78.36 	I-F1:69.06 	I-AP:73.05 	P-Auroc:72.31 	P-F1:9.52 	P-AP:5.63
+26-03-25 00:02:53.402 - INFO: microled_TypeA_19 		I-Auroc:63.63 	I-F1:60.49 	I-AP:56.24 	P-Auroc:84.46 	P-F1:14.88 	P-AP:7.67
+26-03-25 00:02:53.402 - INFO: microled_TypeA_20 		I-Auroc:81.35 	I-F1:70.23 	I-AP:76.00 	P-Auroc:84.21 	P-F1:17.56 	P-AP:12.69
+26-03-25 00:02:53.402 - INFO:         Average 		I-Auroc:67.08 	I-F1:62.94 	I-AP:61.71 	P-Auroc:80.39 	P-F1:13.05 	P-AP:8.54
+26-03-25 00:03:02.914 - INFO: batch_size = 1
+26-03-25 00:03:02.914 - INFO: ckt_path = ./weights/pretrained_visa_clinicdb.pth
+26-03-25 00:03:02.915 - INFO: class_name = candle
+26-03-25 00:03:02.915 - INFO: image_path = asset/img.png
+26-03-25 00:03:02.916 - INFO: image_size = 518
+26-03-25 00:03:02.917 - INFO: k_clusters = 20
+26-03-25 00:03:02.917 - INFO: model = ViT-L-14-336
+26-03-25 00:03:02.918 - INFO: obj_name = all
+26-03-25 00:03:02.918 - INFO: prompting_branch = VL
+26-03-25 00:03:02.918 - INFO: prompting_depth = 4
+26-03-25 00:03:02.919 - INFO: prompting_length = 5
+26-03-25 00:03:02.920 - INFO: prompting_type = SD
+26-03-25 00:03:02.921 - INFO: save_fig = False
+26-03-25 00:03:02.921 - INFO: save_name = test.png
+26-03-25 00:03:02.921 - INFO: save_path = ../../output/AdaCLIP/miniled/zero_shot_all
+26-03-25 00:03:02.922 - INFO: testing_data = miniled
+26-03-25 00:03:02.923 - INFO: testing_model = dataset
+26-03-25 00:03:02.924 - INFO: use_hsf = True
+26-03-25 00:08:28.082 - INFO: miniled_TypeA_1 		I-Auroc:76.98 	I-F1:68.52 	I-AP:68.53 	P-Auroc:92.41 	P-F1:38.59 	P-AP:31.56
+26-03-25 00:08:28.083 - INFO: miniled_TypeA_2 		I-Auroc:75.74 	I-F1:65.67 	I-AP:72.58 	P-Auroc:86.07 	P-F1:29.88 	P-AP:25.58
+26-03-25 00:08:28.083 - INFO: miniled_TypeB_1 		I-Auroc:87.43 	I-F1:75.73 	I-AP:84.37 	P-Auroc:90.12 	P-F1:26.03 	P-AP:22.58
+26-03-25 00:08:28.083 - INFO: miniled_TypeB_2 		I-Auroc:84.41 	I-F1:75.44 	I-AP:83.53 	P-Auroc:90.30 	P-F1:30.10 	P-AP:25.24
+26-03-25 00:08:28.085 - INFO:         Average 		I-Auroc:81.14 	I-F1:71.34 	I-AP:77.25 	P-Auroc:89.73 	P-F1:31.15 	P-AP:26.24

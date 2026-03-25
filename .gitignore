@@ -1,7 +1,7 @@
 # User requested ignores (Output & Data)
 output/
 /data/
-weights/
+/weights/
 
 # Python standard ignores
 __pycache__/

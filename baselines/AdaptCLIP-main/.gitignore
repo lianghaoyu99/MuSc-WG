@@ -5,10 +5,8 @@ __pycache__/
 .vscode/
 *.vscode
 *.png
-*.pth
 *.jpg
 checkpoints/
-adaclip_checkpoints/
 workspace/
 text_json/
 taiji/

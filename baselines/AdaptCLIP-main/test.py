@@ -1,6 +1,7 @@
 """Testing script for AdaptCLIP anomaly detection model."""
 
 import argparse
+import os
 import pickle
 import random
 import time
@@ -330,6 +331,22 @@ def test(args):
 
             gt_anomalys.append(gt_anomaly.int())
             pr_anomalys.append(image_anomaly_pred)
+            
+        if getattr(args, 'visulize_bool', False):
+            # Process each image in the batch for visualization
+            for b_idx in range(current_batchsize):
+                # Only visualize if we have paths
+                if len(query_path) > b_idx:
+                    img_p = query_path[b_idx]
+                    # We need the original image for visualization, getting it from items if available
+                    # Otherwise passing None or dummy will break. We'll read it in visualizer instead.
+                    # Note: AdaptCLIP's original visualizer expected ori_img as tensor. 
+                    # We updated visualizer to take img_path and read the image.
+                    gt_m = gt_mask[b_idx].detach().cpu().numpy()
+                    pr_m = pixel_anomaly_map[b_idx].detach().cpu().numpy()
+                    
+                    # Call updated visualizer
+                    visualizer(img_p, gt_m, pr_m, save_dir=os.path.join(args.save_path, 'visualization', dataset_name), img_size=args.image_size, data_dir=dataset_dir)
 
     end_time_all = time.time()
     print('AdaptCLIP: {}ms per image'.format((end_time_all - start_time_all) * 1000 / dataset_num))
@@ -393,6 +410,7 @@ if __name__ == '__main__':
     parser.add_argument("--pq_mid_dim", type=int, default=128, help="the number of the first hidden layer in pqadapter")
     parser.add_argument("--pq_context", action="store_true", help="Enable context feature")
     parser.add_argument("--class_name", type=str, help="class name for a special dataset, for example, bottle in MVTec")
+    parser.add_argument("--visulize_bool", action="store_true", help="whether to save visualization results")
     args = parser.parse_args()
     print(args)
     setup_seed(args.seed)

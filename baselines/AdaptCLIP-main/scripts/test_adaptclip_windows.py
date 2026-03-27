@@ -20,8 +20,8 @@ shots = [0]
 
 # Define test configurations
 test_configs = [
-    {"dataset": "mvtec", "path": data_root_mvtec, "class_name": "transistor", "train_dataset": "visa"}, # Example
-    # {"dataset": "microled", "path": data_root_microled, "class_name": None, "train_dataset": "visa"}, # Test all classes in microled
+    # {"dataset": "mvtec", "path": data_root_mvtec, "class_name": "transistor", "train_dataset": "visa"}, # Example
+    {"dataset": "microled", "path": data_root_microled, "class_name": "microled_TypeA_1", "train_dataset": "visa"}, # Test all classes in microled
     # {"dataset": "miniled", "path": data_root_miniled, "class_name": None, "train_dataset": "visa"},   # Test all classes in miniled
 ]
 
@@ -76,7 +76,8 @@ for config in test_configs:
                 "--visual_learner",
                 "--textual_learner",
                 "--pq_learner",
-                "--pq_context"
+                "--pq_context",
+                "--visulize_bool"
             ]
             
             if target_class:

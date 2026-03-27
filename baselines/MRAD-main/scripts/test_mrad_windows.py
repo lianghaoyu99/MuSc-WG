@@ -14,7 +14,7 @@ data_root_miniled = "../../data/miniled_AD"
 test_configs = [
     # {"dataset": "mvtec", "path": data_root_mvtec, "class_name": "bottle", "checkpoint": "./checkpoints/test_on_mvtec.pth"}, 
     # {"dataset": "mvtec", "path": data_root_mvtec, "class_name": "all", "checkpoint": "./checkpoints/test_on_mvtec.pth"}, 
-    {"dataset": "microled", "path": data_root_microled, "class_name": "all", "checkpoint": "./checkpoints/test_on_mvtec.pth"}, 
+    {"dataset": "microled", "path": data_root_microled, "class_name": "microled_TypeA_1", "checkpoint": "./checkpoints/test_on_mvtec.pth"}, 
     # {"dataset": "miniled", "path": data_root_miniled, "class_name": "all", "checkpoint": "./checkpoints/test_on_mvtec.pth"},   
 ]
 
@@ -47,7 +47,8 @@ for config in test_configs:
         "--save_path", save_dir,
         "--obj_name", target_class,
         "--model_type", "mrad-clip",
-        "--metrics", "image-pixel-level"
+        "--metrics", "image-pixel-level",
+        "--visulize_bool", "True"
     ]
     
     # Set environment variable for CUDA

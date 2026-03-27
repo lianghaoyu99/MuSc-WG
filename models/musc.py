@@ -119,35 +119,63 @@ class MuSc():
         return test_dataset
 
 
-    def visualization(self, image_path_list, gt_list, pr_px, category):
+    def visualization(self, image_path_list, gt_list, pr_px, gt_px, category):
         def normalization01(img):
-            return (img - img.min()) / (img.max() - img.min())
-        if self.vis_type == 'single_norm':
-            # normalized per image
-            for i, path in enumerate(image_path_list):
-                anomaly_type = os.path.basename(os.path.dirname(path))
-                img_name = os.path.basename(path)
-                if anomaly_type not in ['good', 'Normal', 'ok'] and gt_list[i] != 0:
-                    save_path = os.path.join(self.output_dir, category, anomaly_type)
-                    os.makedirs(save_path, exist_ok=True)
-                    save_path = os.path.join(save_path, img_name)
-                    anomaly_map = pr_px[i].squeeze()
-                    anomaly_map = normalization01(anomaly_map)*255
-                    anomaly_map = cv2.applyColorMap(anomaly_map.astype(np.uint8), cv2.COLORMAP_JET)
-                    cv2.imwrite(save_path, anomaly_map)
-        else:
+            return (img - img.min()) / (img.max() - img.min() + 1e-8)
+            
+        def apply_ad_scoremap(image, scoremap, alpha=0.5):
+            np_image = np.asarray(image, dtype=float)
+            scoremap = (scoremap * 255).astype(np.uint8)
+            scoremap = cv2.applyColorMap(scoremap, cv2.COLORMAP_JET)
+            scoremap = cv2.cvtColor(scoremap, cv2.COLOR_BGR2RGB)
+            return (alpha * np_image + (1 - alpha) * scoremap).astype(np.uint8)
+
+        def draw_mask_contour(image, mask):
+            if mask.ndim == 3:
+                mask = mask[0]
+            mask_uint8 = (mask * 255).astype(np.uint8)
+            mask_uint8 = np.ascontiguousarray(mask_uint8)
+            contours, _ = cv2.findContours(mask_uint8, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            vis = image.copy()
+            cv2.drawContours(vis, contours, -1, (0, 255, 0), 2)  # 绿色描边
+            return vis
+
+        if self.vis_type != 'single_norm':
             # normalized all image
             pr_px = normalization01(pr_px)
-            for i, path in enumerate(image_path_list):
-                anomaly_type = os.path.basename(os.path.dirname(path))
-                img_name = os.path.basename(path)
-                save_path = os.path.join(self.output_dir, category, anomaly_type)
-                os.makedirs(save_path, exist_ok=True)
-                save_path = os.path.join(save_path, img_name)
-                anomaly_map = pr_px[i].squeeze()
-                anomaly_map *= 255
-                anomaly_map = cv2.applyColorMap(anomaly_map.astype(np.uint8), cv2.COLORMAP_JET)
-                cv2.imwrite(save_path, anomaly_map)
+
+        for i, path in enumerate(image_path_list):
+            path = os.path.normpath(path)
+            anomaly_type = os.path.basename(os.path.dirname(path))
+            img_name = os.path.basename(path)
+            base_name = os.path.splitext(img_name)[0]
+            
+            save_dir = os.path.join(self.output_dir, 'vis', category, anomaly_type)
+            os.makedirs(save_dir, exist_ok=True)
+            
+            # Read original image
+            ori_img = cv2.imread(path)
+            if ori_img is None:
+                continue
+            ori_img = cv2.cvtColor(ori_img, cv2.COLOR_BGR2RGB)
+            ori_img = cv2.resize(ori_img, (self.image_size, self.image_size))
+            
+            # GT contour
+            gt_mask = gt_px[i].squeeze()
+            gt_mask = cv2.resize(gt_mask.astype(np.float32), (self.image_size, self.image_size), interpolation=cv2.INTER_NEAREST)
+            gt_vis = draw_mask_contour(ori_img, gt_mask)
+            save_gt = os.path.join(save_dir, f"{base_name}_gt.png")
+            cv2.imwrite(save_gt, cv2.cvtColor(gt_vis, cv2.COLOR_RGB2BGR))
+            
+            # Anomaly map
+            anomaly_map = pr_px[i].squeeze()
+            if self.vis_type == 'single_norm':
+                anomaly_map = normalization01(anomaly_map)
+                
+            anomaly_map = cv2.resize(anomaly_map, (self.image_size, self.image_size))
+            vis = apply_ad_scoremap(ori_img, anomaly_map)
+            save_vis = os.path.join(save_dir, f"{base_name}_MuSc.png")
+            cv2.imwrite(save_vis, cv2.cvtColor(vis, cv2.COLOR_RGB2BGR))
 
 
     def visualize_tsne(self, features, labels, category, title="t-SNE Visualization"):
@@ -283,9 +311,9 @@ class MuSc():
                 ablation_detail_start = 1       # 1: Skip Level 0 (Noise)
                 ablation_keep_ll = True         # True: Include Low Frequency Approximation
 
-                ablation_gamma   = 1.0          # Moderate Gamma
-                ablation_use_spot_weight = False  # Suppress patterns found in ANY other image (Occasional Normal Pattern)
-                ablation_use_morphology = False  # Toggle for Morphological Optimization (Opening/Closing + Smoothing)
+                ablation_gamma   = 2.0          # Moderate Gamma
+                ablation_use_spot_weight = True  # Suppress patterns found in ANY other image (Occasional Normal Pattern)
+                ablation_use_morphology = True  # Toggle for Morphological Optimization (Opening/Closing + Smoothing)
                 
                 # Morphological Parameters
                 ablation_morph_open_k = 1       # Opening kernel size (remove noise). 1 = disabled.
@@ -293,13 +321,13 @@ class MuSc():
                 ablation_morph_smooth_k = 3     # Gaussian smoothing kernel size (remove blockiness).
                 ablation_morph_sigma = 0.5      # Gaussian blur standard deviation.
                 
-                print(f"Using Original LNAMD with r={r}, ablation_use_spot_weight={ablation_use_spot_weight}, gamma={ablation_gamma}")
-                LNAMD_r = LNAMD(device=self.device, r=r, feature_dim=feature_dim, feature_layer=self.features_list)
+                # print(f"Using Original LNAMD with r={r}, ablation_use_spot_weight={ablation_use_spot_weight}, gamma={ablation_gamma}")
+                # LNAMD_r = LNAMD(device=self.device, r=r, feature_dim=feature_dim, feature_layer=self.features_list)
 
-                # print(f"Using WTConvLNAMDStatic with r={r}, wt={ablation_wt_type}, bandpass={ablation_use_details}(start={ablation_detail_start}, keep_ll={ablation_keep_ll})")
-                # LNAMD_r = WTConvLNAMDStatic(device=self.device, feature_dim=feature_dim, feature_layer=self.features_list, r=r,
-                #                             wt_type=ablation_wt_type, padding_mode=ablation_padding, include_level0=ablation_level0,
-                #                             use_details=ablation_use_details, detail_start_level=ablation_detail_start, keep_ll=ablation_keep_ll)
+                print(f"Using WTConvLNAMDStatic with r={r}, wt={ablation_wt_type}, bandpass={ablation_use_details}(start={ablation_detail_start}, keep_ll={ablation_keep_ll})")
+                LNAMD_r = WTConvLNAMDStatic(device=self.device, feature_dim=feature_dim, feature_layer=self.features_list, r=r,
+                                            wt_type=ablation_wt_type, padding_mode=ablation_padding, include_level0=ablation_level0,
+                                            use_details=ablation_use_details, detail_start_level=ablation_detail_start, keep_ll=ablation_keep_ll)
                 Z_layers = {}
                 for im in range(len(patch_tokens_list)):  # 遍历所有batch的patch tokens(l,b,p,d)
                     patch_tokens = [p.to(self.device) for p in patch_tokens_list[im]]  # 提取局部特征patch tokens
@@ -451,7 +479,7 @@ class MuSc():
 
         if self.vis:
             print('visualization...')
-            self.visualization(image_path_list, gt_list, pr_px, category)
+            self.visualization(image_path_list, gt_list, pr_px, gt_px, category)
     
         if torch.cuda.is_available():
             mem_allocated = torch.cuda.max_memory_allocated() / 1024 / 1024

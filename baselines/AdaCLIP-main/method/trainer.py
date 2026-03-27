@@ -1,4 +1,5 @@
 import cv2
+import os
 import torchvision.transforms as transforms
 from scipy.ndimage import gaussian_filter
 
@@ -171,9 +172,21 @@ class AdaCLIP_Trainer(nn.Module):
                         vis_image = cv2.resize(cv2.imread(_path), (self.image_size, self.image_size))
                         results['imgs'].append(vis_image)
                     cls_name = items['cls_name']
-                    for _cls_name in cls_name:
+                    for _cls_name, _path in zip(cls_name, path):
                         image_indx += 1
-                        results['names'].append('{:}-{:03d}'.format(_cls_name, image_indx))
+                        
+                        # Use robust path parsing similar to other baselines
+                        norm_path = os.path.normpath(_path)
+                        # We don't have data_dir here easily, but we can extract from the path
+                        # typically: dataset/category/test/defect/image.png
+                        parts = norm_path.split(os.sep)
+                        if len(parts) >= 4:
+                            rel_path = "-".join(parts[-4:])
+                        else:
+                            rel_path = os.path.basename(norm_path)
+                            
+                        base = rel_path.replace(".png", "").replace(".jpg", "")
+                        results['names'].append(base)
 
                 image = items['img'].to(self.device)
                 cls_name = items['cls_name']

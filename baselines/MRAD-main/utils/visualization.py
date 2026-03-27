@@ -61,8 +61,18 @@ def visualizer(img_path, gt_mask, anomaly_map, save_dir, img_size=518, data_dir=
     os.makedirs(save_dir, exist_ok=True)
 
     # 解析文件名 (去掉前面的路径，只保留 datasets 后面的部分)
-    rel_path = img_path.split(data_dir+'/')[-1]   # e.g. "bottle/test/broken_small/000.png"
-    rel_path = rel_path.replace("/", "-")     # e.g. "bottle-test-broken_small-000.png"
+    # Use os.path.normpath and string replacement to handle different OS path separators
+    norm_img_path = os.path.normpath(img_path)
+    norm_data_dir = os.path.normpath(data_dir)
+    
+    # Extract relative path robustly
+    if norm_data_dir in norm_img_path:
+        rel_path = norm_img_path.replace(norm_data_dir, "").lstrip(os.sep)
+    else:
+        # Fallback if split fails
+        rel_path = os.path.basename(img_path)
+        
+    rel_path = rel_path.replace(os.sep, "-").replace("/", "-")     # e.g. "bottle-test-broken_small-000.png"
     base = rel_path.replace(".png", "")       # e.g. "bottle-test-broken_small-000"
 
     # 读取原图并resize (RGB)

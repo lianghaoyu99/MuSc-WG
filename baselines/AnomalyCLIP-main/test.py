@@ -112,7 +112,8 @@ def test(args):
             results[cls_name[0]]['pr_sp'].extend(text_probs.detach().cpu())
             anomaly_map = torch.stack([torch.from_numpy(gaussian_filter(i, sigma = args.sigma)) for i in anomaly_map.detach().cpu()], dim = 0 )
             results[cls_name[0]]['anomaly_maps'].append(anomaly_map)
-            # visualizer(items['img_path'], anomaly_map.detach().cpu().numpy(), args.image_size, args.save_path, cls_name)
+            if args.visulize_bool:
+                visualizer(items['img_path'][0], gt_mask, anomaly_map.detach().cpu().numpy(), save_dir=os.path.join(args.save_path, 'visualization', dataset_name), img_size=args.image_size, data_dir=dataset_dir)
 
     end_time = time.time()
     total_time = end_time - start_time
@@ -203,6 +204,7 @@ if __name__ == '__main__':
     parser.add_argument("--metrics", type=str, default='image-pixel-level')
     parser.add_argument("--seed", type=int, default=111, help="random seed")
     parser.add_argument("--sigma", type=int, default=4, help="zero shot")
+    parser.add_argument("--visulize_bool", type=bool, default=False, help="whether to save visualization results")
     
     args = parser.parse_args()
     print(args)

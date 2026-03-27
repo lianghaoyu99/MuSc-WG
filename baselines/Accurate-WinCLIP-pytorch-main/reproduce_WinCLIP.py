@@ -90,18 +90,56 @@ def cal_pro_score(masks, amaps, max_step=200, expect_fpr=0.3):
     pro_auc = auc(fprs, pros[idxes])
     return pro_auc
 
-def vis(pathes, anomaly_map, img_size, save_path, cls_name):
-    for idx, path in enumerate(pathes):
-        cls = path.split('/')[-2]
-        filename = path.split('/')[-1]
-        vis = cv2.cvtColor(cv2.resize(cv2.imread(path), (img_size, img_size)), cv2.COLOR_BGR2RGB)  # RGB
-        mask = normalize(anomaly_map[idx])
-        vis = apply_ad_scoremap(vis, mask)
-        vis = cv2.cvtColor(vis, cv2.COLOR_RGB2BGR)  # BGR
-        save_vis = os.path.join(save_path, 'imgs', cls_name[idx], cls)
-        if not os.path.exists(save_vis):
-            os.makedirs(save_vis)
-        cv2.imwrite(os.path.join(save_vis, filename), vis)
+def vis(img_path, gt_mask, anomaly_map, save_dir, img_size=518, data_dir=None):
+    os.makedirs(save_dir, exist_ok=True)
+
+    # Use os.path.normpath and string replacement to handle different OS path separators
+    norm_img_path = os.path.normpath(img_path)
+    if data_dir is not None:
+        norm_data_dir = os.path.normpath(data_dir)
+        # Extract relative path robustly
+        if norm_data_dir in norm_img_path:
+            rel_path = norm_img_path.replace(norm_data_dir, "").lstrip(os.sep)
+        else:
+            rel_path = os.path.basename(img_path)
+    else:
+        rel_path = os.path.basename(img_path)
+        
+    rel_path = rel_path.replace(os.sep, "-").replace("/", "-")     
+    base = rel_path.replace(".png", "").replace(".jpg", "")
+
+    ori = cv2.cvtColor(cv2.resize(cv2.imread(img_path), (img_size, img_size)), cv2.COLOR_BGR2RGB)
+
+    # GT
+    if isinstance(gt_mask, torch.Tensor):
+        gt_mask = gt_mask.squeeze().cpu().numpy()
+    
+    # 确保掩码是单通道二维矩阵，如果是三维则取第一通道
+    if gt_mask.ndim == 3:
+        gt_mask = gt_mask[0]
+        
+    # 确保掩码值在 0 和 255 之间，且类型为 uint8，这是 cv2.findContours 所要求的单通道 8 位图像格式
+    gt_mask = (gt_mask * 255).astype(np.uint8)
+    # Ensure it's a contiguous array to prevent cv2 errors
+    gt_mask = np.ascontiguousarray(gt_mask)
+    gt_mask = cv2.resize(gt_mask, (img_size, img_size), interpolation=cv2.INTER_NEAREST)
+    contours, _ = cv2.findContours(gt_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    ori_gt = ori.copy()
+    cv2.drawContours(ori_gt, contours, -1, (0, 255, 0), 2)  # Green contour
+    
+    # Anomaly map
+    if isinstance(anomaly_map, torch.Tensor):
+        anomaly_map = anomaly_map.squeeze().cpu().numpy()
+    if anomaly_map.ndim == 3 and anomaly_map.shape[0] == 1:
+        anomaly_map = anomaly_map[0]
+    anomaly_map = cv2.resize(anomaly_map, (img_size, img_size))
+    anomaly_map = normalize(anomaly_map)
+    vis_img = apply_ad_scoremap(ori, anomaly_map)
+
+    save_vis = os.path.join(save_dir, f"{base}_WinCLIP.png")
+    cv2.imwrite(save_vis, cv2.cvtColor(vis_img, cv2.COLOR_RGB2BGR))
+    save_gt = os.path.join(save_dir, f"{base}_gt.png")
+    cv2.imwrite(save_gt, cv2.cvtColor(ori_gt, cv2.COLOR_RGB2BGR))
 
 class prompt_order():
     def __init__(self) -> None:
@@ -481,6 +519,14 @@ def test(args,):
             
         results['pr_sp'].extend(z0score.detach().cpu())
         results['anomaly_maps'].append(multiscale_score)
+        
+        if getattr(args, 'visulize_bool', False):
+            for b_idx in range(b):
+                if len(items['img_path']) > b_idx:
+                    img_p = items['img_path'][b_idx]
+                    gt_m = gt_mask[b_idx].detach().cpu().numpy()
+                    pr_m = multiscale_score[b_idx].detach().cpu().numpy()
+                    vis(img_p, gt_m, pr_m, save_dir=os.path.join(args.save_path, 'visualization', dataset_name), img_size=args.image_size, data_dir=dataset_dir)
 
         end_time = time.time()
         total_time += (end_time - start_time)
@@ -607,6 +653,7 @@ if __name__ == '__main__':
     parser.add_argument("--few_shot_features", type=int, nargs="+", default=[3, 6, 9], help="features used for few shot")
     parser.add_argument("--image_size", type=int, default=224, help="image size")
     parser.add_argument("--class_name", type=str, default="all", help="specific class to test, or 'all' for all classes")
+    parser.add_argument("--visulize_bool", action="store_true", help="whether to save visualization results")
     # parser.add_argument("--mode", type=str, default="zero_shot", help="zero shot or few shot")
     # few shot
     parser.add_argument("--k_shot", type=int, default=10, help="10-shot, 5-shot, 1-shot")

@@ -12,9 +12,9 @@ data_root_miniled = "../../data/miniled_AD"
 # Define test configurations
 # Uncomment the configuration you want to run
 test_configs = [
-    {"dataset": "mvtec", "path": data_root_mvtec, "data_script": "data/mvtec.py", "checkpoint": "./exps/pretrained/visa_pretrained.pth"}, 
+    # {"dataset": "mvtec", "path": data_root_mvtec, "data_script": "data/mvtec.py", "checkpoint": "./exps/pretrained/visa_pretrained.pth"}, 
     {"dataset": "microled", "path": data_root_microled, "data_script": "data/microled.py", "checkpoint": "./exps/pretrained/visa_pretrained.pth"}, 
-    {"dataset": "miniled", "path": data_root_miniled, "data_script": "data/miniled.py", "checkpoint": "./exps/pretrained/visa_pretrained.pth"},   
+    # {"dataset": "miniled", "path": data_root_miniled, "data_script": "data/miniled.py", "checkpoint": "./exps/pretrained/visa_pretrained.pth"},   
 ]
 
 # Base arguments

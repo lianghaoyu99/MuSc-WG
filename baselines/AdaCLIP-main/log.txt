@@ -284,3 +284,41 @@
 26-03-25 16:04:07.471 - INFO: use_hsf = True
 26-03-25 16:08:32.121 - INFO: miniled_TypeB_2 		I-Auroc:83.76 	I-F1:75.27 	I-AP:83.36 	P-Auroc:90.30 	P-F1:30.10 	P-AP:25.24
 26-03-25 16:08:32.123 - INFO:         Average 		I-Auroc:83.76 	I-F1:75.27 	I-AP:83.36 	P-Auroc:90.30 	P-F1:30.10 	P-AP:25.24
+26-03-27 23:54:44.613 - INFO: batch_size = 1
+26-03-27 23:54:44.614 - INFO: ckt_path = ./weights/pretrained_visa_clinicdb.pth
+26-03-27 23:54:44.614 - INFO: class_name = candle
+26-03-27 23:54:44.614 - INFO: image_path = asset/img.png
+26-03-27 23:54:44.616 - INFO: image_size = 518
+26-03-27 23:54:44.616 - INFO: k_clusters = 20
+26-03-27 23:54:44.616 - INFO: model = ViT-L-14-336
+26-03-27 23:54:44.617 - INFO: obj_name = microled_TypeA_1
+26-03-27 23:54:44.617 - INFO: prompting_branch = VL
+26-03-27 23:54:44.617 - INFO: prompting_depth = 4
+26-03-27 23:54:44.619 - INFO: prompting_length = 5
+26-03-27 23:54:44.619 - INFO: prompting_type = SD
+26-03-27 23:54:44.620 - INFO: save_fig = True
+26-03-27 23:54:44.620 - INFO: save_name = test.png
+26-03-27 23:54:44.620 - INFO: save_path = ../../output/AdaCLIP/microled/zero_shot_microled_TypeA_1
+26-03-27 23:54:44.622 - INFO: testing_data = microled
+26-03-27 23:54:44.622 - INFO: testing_model = dataset
+26-03-27 23:54:44.623 - INFO: use_hsf = True
+26-03-27 23:57:31.376 - INFO: batch_size = 1
+26-03-27 23:57:31.376 - INFO: ckt_path = ./weights/pretrained_visa_clinicdb.pth
+26-03-27 23:57:31.377 - INFO: class_name = candle
+26-03-27 23:57:31.378 - INFO: image_path = asset/img.png
+26-03-27 23:57:31.379 - INFO: image_size = 518
+26-03-27 23:57:31.379 - INFO: k_clusters = 20
+26-03-27 23:57:31.380 - INFO: model = ViT-L-14-336
+26-03-27 23:57:31.380 - INFO: obj_name = microled_TypeA_1
+26-03-27 23:57:31.382 - INFO: prompting_branch = VL
+26-03-27 23:57:31.382 - INFO: prompting_depth = 4
+26-03-27 23:57:31.383 - INFO: prompting_length = 5
+26-03-27 23:57:31.383 - INFO: prompting_type = SD
+26-03-27 23:57:31.385 - INFO: save_fig = True
+26-03-27 23:57:31.386 - INFO: save_name = test.png
+26-03-27 23:57:31.386 - INFO: save_path = ../../output/AdaCLIP/microled/zero_shot_microled_TypeA_1
+26-03-27 23:57:31.388 - INFO: testing_data = microled
+26-03-27 23:57:31.388 - INFO: testing_model = dataset
+26-03-27 23:57:31.388 - INFO: use_hsf = True
+26-03-27 23:58:59.309 - INFO: microled_TypeA_1 		I-Auroc:78.80 	I-F1:70.33 	I-AP:78.53 	P-Auroc:92.95 	P-F1:30.56 	P-AP:27.31
+26-03-27 23:58:59.309 - INFO:         Average 		I-Auroc:78.80 	I-F1:70.33 	I-AP:78.53 	P-Auroc:92.95 	P-F1:30.56 	P-AP:27.31

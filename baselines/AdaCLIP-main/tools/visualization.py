@@ -34,19 +34,23 @@ def plot_sample_cv2(names, imgs, scores_: dict, gts, save_folder=None):
     for idx in range(total_number):
         gts_ = gts[idx]
         mask_imgs_ = imgs[idx].copy()
-        mask_imgs_[gts_ > 0.5] = (0, 0, 255)
+        
+        # 优化 GT 可视化：使用绿色描边代替简单的像素替换
+        gts_uint8 = (gts_ * 255).astype(np.uint8)
+        contours, _ = cv2.findContours(gts_uint8, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        cv2.drawContours(mask_imgs_, contours, -1, (0, 255, 0), 2)  # 绿色描边
+        
         mask_imgs.append(mask_imgs_)
 
     # save imgs
     for idx in range(total_number):
-
-        cv2.imwrite(os.path.join(save_folder, f'{names[idx]}_ori.jpg'), imgs[idx])
-        cv2.imwrite(os.path.join(save_folder, f'{names[idx]}_gt.jpg'), mask_imgs[idx])
+        # cv2.imwrite(os.path.join(save_folder, f'{names[idx]}_ori.jpg'), imgs[idx])
+        cv2.imwrite(os.path.join(save_folder, f'{names[idx]}_gt.png'), mask_imgs[idx])
 
         for key in scores:
             heat_map = cv2.applyColorMap(scores[key][idx], cv2.COLORMAP_JET)
             visz_map = cv2.addWeighted(heat_map, 0.5, imgs[idx], 0.5, 0)
-            cv2.imwrite(os.path.join(save_folder, f'{names[idx]}_{key}.jpg'),
+            cv2.imwrite(os.path.join(save_folder, f'{names[idx]}_{key}.png'),
                         visz_map)
 
 

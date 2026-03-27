@@ -359,14 +359,14 @@ def test(args,):
             obj_list = [args.class_name]
         test_data = VisaDataset(root=dataset_dir, transform=preprocess, target_transform=transform, mode='test')
     elif dataset_name == 'microled':
-        obj_list = ['chip']  # Assuming microled has specific classes or just one main class, adjust if needed
+        obj_list = list(json.load(open(f'{dataset_dir}/meta.json', 'r'))['test'].keys())
         if args.class_name != "all":
             obj_list = [args.class_name]
         # You may need to import or implement MicroLEDDataset if it differs, for now using MVTecDataset format
         test_data = MVTecDataset(root=dataset_dir, transform=preprocess, target_transform=transform,
                                  aug_rate=-1, mode='test', obj_name=args.class_name)
     elif dataset_name == 'miniled':
-        obj_list = ['chip']  # Assuming miniled has specific classes or just one main class, adjust if needed
+        obj_list = list(json.load(open(f'{dataset_dir}/meta.json', 'r'))['test'].keys())
         if args.class_name != "all":
             obj_list = [args.class_name]
         # You may need to import or implement MiniLEDDataset if it differs, for now using MVTecDataset format
@@ -475,6 +475,10 @@ def test(args,):
         multiscale_score = F.interpolate(multiscale_score, size=(h, w), mode='bilinear')
 
         multiscale_score = multiscale_score.squeeze()
+        # Ensure that if batch size is 1, the batch dimension is kept when squeezing
+        if multiscale_score.dim() == 2:
+            multiscale_score = multiscale_score.unsqueeze(0)
+            
         results['pr_sp'].extend(z0score.detach().cpu())
         results['anomaly_maps'].append(multiscale_score)
 
@@ -524,26 +528,36 @@ def test(args,):
         pr_sp = np.array(pr_sp)
 
 
-        auroc_px = roc_auc_score(gt_px.ravel(), pr_px.ravel())
-        auroc_sp = roc_auc_score(gt_sp, pr_sp)
-        ap_sp = average_precision_score(gt_sp, pr_sp)
-        ap_px = average_precision_score(gt_px.ravel(), pr_px.ravel())
+        auroc_px = roc_auc_score(gt_px.ravel(), pr_px.ravel()) if len(gt_px) > 0 else 0
+        auroc_sp = roc_auc_score(gt_sp, pr_sp) if len(gt_sp) > 0 else 0
+        ap_sp = average_precision_score(gt_sp, pr_sp) if len(gt_sp) > 0 else 0
+        ap_px = average_precision_score(gt_px.ravel(), pr_px.ravel()) if len(gt_px) > 0 else 0
+        
         # f1_sp
-        precisions, recalls, thresholds = precision_recall_curve(gt_sp, pr_sp)
-        # print("precisions recalls", precisions, recalls)
-        f1_scores = (2 * precisions * recalls) / (precisions + recalls)
-        f1_sp = np.max(f1_scores[np.isfinite(f1_scores)])
+        if len(gt_sp) > 0:
+            precisions, recalls, thresholds = precision_recall_curve(gt_sp, pr_sp)
+            f1_scores = (2 * precisions * recalls) / (precisions + recalls + 1e-10)
+            f1_sp = np.max(f1_scores[np.isfinite(f1_scores)])
+        else:
+            f1_sp = 0
+            
         # f1_px
-        precisions, recalls, thresholds = precision_recall_curve(gt_px.ravel(), pr_px.ravel())
-        # print("precisions recalls", precisions, recalls)
-        f1_scores = (2 * precisions * recalls) / (precisions + recalls)
-        f1_px = np.max(f1_scores[np.isfinite(f1_scores)])
+        if len(gt_px) > 0:
+            precisions, recalls, thresholds = precision_recall_curve(gt_px.ravel(), pr_px.ravel())
+            f1_scores = (2 * precisions * recalls) / (precisions + recalls + 1e-10)
+            f1_px = np.max(f1_scores[np.isfinite(f1_scores)])
+        else:
+            f1_px = 0
+            
         # aupro
-        if len(gt_px.shape) == 4:
-            gt_px = gt_px.squeeze(1)
-        if len(pr_px.shape) == 4:
-            pr_px = pr_px.squeeze(1)
-        aupro = cal_pro_score(gt_px, pr_px)
+        if len(gt_px) > 0:
+            if len(gt_px.shape) == 4:
+                gt_px = gt_px.squeeze(1)
+            if len(pr_px.shape) == 4:
+                pr_px = pr_px.squeeze(1)
+            aupro = cal_pro_score(gt_px, pr_px)
+        else:
+            aupro = 0
 
         table.append(str(np.round(auroc_px * 100, decimals=1)))
         table.append(str(np.round(f1_px * 100, decimals=1)))

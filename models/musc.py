@@ -283,9 +283,9 @@ class MuSc():
                 ablation_detail_start = 1       # 1: Skip Level 0 (Noise)
                 ablation_keep_ll = True         # True: Include Low Frequency Approximation
 
-                ablation_gamma   = 2.0          # Moderate Gamma
-                ablation_use_spot_weight = True  # Suppress patterns found in ANY other image (Occasional Normal Pattern)
-                ablation_use_morphology = True  # Toggle for Morphological Optimization (Opening/Closing + Smoothing)
+                ablation_gamma   = 1.0          # Moderate Gamma
+                ablation_use_spot_weight = False  # Suppress patterns found in ANY other image (Occasional Normal Pattern)
+                ablation_use_morphology = False  # Toggle for Morphological Optimization (Opening/Closing + Smoothing)
                 
                 # Morphological Parameters
                 ablation_morph_open_k = 1       # Opening kernel size (remove noise). 1 = disabled.
@@ -293,13 +293,13 @@ class MuSc():
                 ablation_morph_smooth_k = 3     # Gaussian smoothing kernel size (remove blockiness).
                 ablation_morph_sigma = 0.5      # Gaussian blur standard deviation.
                 
-                # print(f"Using Original LNAMD with r={r}, intra_weight={ablation_intra_weight}, gamma={ablation_gamma}")
-                # LNAMD_r = LNAMD(device=self.device, r=r, feature_dim=feature_dim, feature_layer=self.features_list)
+                print(f"Using Original LNAMD with r={r}, ablation_use_spot_weight={ablation_use_spot_weight}, gamma={ablation_gamma}")
+                LNAMD_r = LNAMD(device=self.device, r=r, feature_dim=feature_dim, feature_layer=self.features_list)
 
-                print(f"Using WTConvLNAMDStatic with r={r}, wt={ablation_wt_type}, bandpass={ablation_use_details}(start={ablation_detail_start}, keep_ll={ablation_keep_ll})")
-                LNAMD_r = WTConvLNAMDStatic(device=self.device, feature_dim=feature_dim, feature_layer=self.features_list, r=r,
-                                            wt_type=ablation_wt_type, padding_mode=ablation_padding, include_level0=ablation_level0,
-                                            use_details=ablation_use_details, detail_start_level=ablation_detail_start, keep_ll=ablation_keep_ll)
+                # print(f"Using WTConvLNAMDStatic with r={r}, wt={ablation_wt_type}, bandpass={ablation_use_details}(start={ablation_detail_start}, keep_ll={ablation_keep_ll})")
+                # LNAMD_r = WTConvLNAMDStatic(device=self.device, feature_dim=feature_dim, feature_layer=self.features_list, r=r,
+                #                             wt_type=ablation_wt_type, padding_mode=ablation_padding, include_level0=ablation_level0,
+                #                             use_details=ablation_use_details, detail_start_level=ablation_detail_start, keep_ll=ablation_keep_ll)
                 Z_layers = {}
                 for im in range(len(patch_tokens_list)):  # 遍历所有batch的patch tokens(l,b,p,d)
                     patch_tokens = [p.to(self.device) for p in patch_tokens_list[im]]  # 提取局部特征patch tokens
@@ -453,7 +453,13 @@ class MuSc():
             print('visualization...')
             self.visualization(image_path_list, gt_list, pr_px, category)
     
-        return image_metric, pixel_metric
+        if torch.cuda.is_available():
+            mem_allocated = torch.cuda.max_memory_allocated() / 1024 / 1024
+            mem_reserved = torch.cuda.max_memory_reserved() / 1024 / 1024
+        else:
+            mem_allocated, mem_reserved = 0, 0
+            
+        return image_metric, pixel_metric, ((end_time_all-start_time_all)*1000/dataset_num), mem_allocated, mem_reserved
 
 
     def main(self):
@@ -464,8 +470,11 @@ class MuSc():
         f1_px_ls = []
         ap_px_ls = []
         aupro_ls = []
+        time_ls = []
+        mem_alloc_ls = []
+        mem_res_ls = []
         for category in self.categories:
-            image_metric, pixel_metric = self.make_category_data(category=category,)  # 对每个类别进行缺陷检测
+            image_metric, pixel_metric, avg_time, mem_alloc, mem_res = self.make_category_data(category=category,)  # 对每个类别进行缺陷检测
             auroc_sp, f1_sp, ap_sp = image_metric
             auroc_px, f1_px, ap_px, aupro = pixel_metric
             auroc_sp_ls.append(auroc_sp)
@@ -475,6 +484,10 @@ class MuSc():
             f1_px_ls.append(f1_px)
             ap_px_ls.append(ap_px)
             aupro_ls.append(aupro)
+            time_ls.append(avg_time)
+            mem_alloc_ls.append(mem_alloc)
+            mem_res_ls.append(mem_res)
+            
         # mean
         auroc_sp_mean = sum(auroc_sp_ls) / len(auroc_sp_ls)
         f1_sp_mean = sum(f1_sp_ls) / len(f1_sp_ls)
@@ -483,6 +496,9 @@ class MuSc():
         f1_px_mean = sum(f1_px_ls) / len(f1_px_ls)
         ap_px_mean = sum(ap_px_ls) / len(ap_px_ls)
         aupro_mean = sum(aupro_ls) / len(aupro_ls)
+        time_mean = sum(time_ls) / len(time_ls)
+        mem_alloc_mean = sum(mem_alloc_ls) / len(mem_alloc_ls)
+        mem_res_mean = sum(mem_res_ls) / len(mem_res_ls)
 
         for i, category in enumerate(self.categories):
             print(category)
@@ -491,6 +507,9 @@ class MuSc():
         print('mean')
         print('image-level, auroc:{}, f1:{}, ap:{}'.format(auroc_sp_mean*100, f1_sp_mean*100, ap_sp_mean*100))
         print('pixel-level, auroc:{}, f1:{}, ap:{}, aupro:{}'.format(auroc_px_mean*100, f1_px_mean*100, ap_px_mean*100, aupro_mean*100))
+        print('MuSc: {:.2f}ms per image'.format(time_mean))
+        if torch.cuda.is_available():
+            print('MuSc GPU Memory: {:.2f} MB (Allocated), {:.2f} MB (Reserved)'.format(mem_alloc_mean, mem_res_mean))
         
         # save in excel
         if self.save_excel:

@@ -1,7 +1,7 @@
 datasets:
-  dataset_name: 'microled_ad'  # choice ['mvtec_ad', 'miniled_ad', 'microled_ad']
-  data_path: ./data/microled_AD/  # ./data/mvtec_anomaly_detection/ ./data/miniled_AD/ ./data/microled_AD/
-  class_name: 'microled_TypeA_1'  # 'ALL' 'transistor' 'miniled_TypeA_1' 'microled_TypeA_1'
+  dataset_name: 'miniled_ad'  # choice ['mvtec_ad', 'miniled_ad', 'microled_ad']
+  data_path: ./data/miniled_AD/  # ./data/mvtec_anomaly_detection/ ./data/miniled_AD/ ./data/microled_AD/
+  class_name: 'miniled_TypeB_1'  # 'ALL' 'transistor' 'miniled_TypeA_1' 'microled_TypeA_1'
   img_resize: 518  # 512 is for Patch 16 (32*16), for Patch 14 use 518 (37*14)
   divide_num: 1
 models:

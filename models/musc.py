@@ -174,7 +174,7 @@ class MuSc():
                 
             anomaly_map = cv2.resize(anomaly_map, (self.image_size, self.image_size))
             vis = apply_ad_scoremap(ori_img, anomaly_map)
-            save_vis = os.path.join(save_dir, f"{base_name}_MuSc.png")
+            save_vis = os.path.join(save_dir, f"{base_name}.png")
             cv2.imwrite(save_vis, cv2.cvtColor(vis, cv2.COLOR_RGB2BGR))
 
 

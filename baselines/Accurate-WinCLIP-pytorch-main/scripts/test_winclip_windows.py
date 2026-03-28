@@ -13,8 +13,8 @@ data_root_miniled = "../../data/miniled_AD"
 # Uncomment the configuration you want to run
 test_configs = [
     # {"dataset": "mvtec", "path": data_root_mvtec, "class_name": "all"}, 
-    {"dataset": "microled", "path": data_root_microled, "class_name": "microled_TypeA_1"}, 
-    # {"dataset": "miniled", "path": data_root_miniled, "class_name": "all"},   
+    # {"dataset": "microled", "path": data_root_microled, "class_name": "microled_TypeA_1"}, 
+    {"dataset": "miniled", "path": data_root_miniled, "class_name": "miniled_TypeB_1"},   
 ]
 
 few_shot = 0

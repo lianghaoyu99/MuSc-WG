@@ -322,3 +322,23 @@
 26-03-27 23:57:31.388 - INFO: use_hsf = True
 26-03-27 23:58:59.309 - INFO: microled_TypeA_1 		I-Auroc:78.80 	I-F1:70.33 	I-AP:78.53 	P-Auroc:92.95 	P-F1:30.56 	P-AP:27.31
 26-03-27 23:58:59.309 - INFO:         Average 		I-Auroc:78.80 	I-F1:70.33 	I-AP:78.53 	P-Auroc:92.95 	P-F1:30.56 	P-AP:27.31
+26-03-28 10:53:36.459 - INFO: batch_size = 1
+26-03-28 10:53:36.460 - INFO: ckt_path = ./weights/pretrained_visa_clinicdb.pth
+26-03-28 10:53:36.461 - INFO: class_name = candle
+26-03-28 10:53:36.461 - INFO: image_path = asset/img.png
+26-03-28 10:53:36.462 - INFO: image_size = 518
+26-03-28 10:53:36.463 - INFO: k_clusters = 20
+26-03-28 10:53:36.463 - INFO: model = ViT-L-14-336
+26-03-28 10:53:36.464 - INFO: obj_name = miniled_TypeB_1
+26-03-28 10:53:36.464 - INFO: prompting_branch = VL
+26-03-28 10:53:36.465 - INFO: prompting_depth = 4
+26-03-28 10:53:36.466 - INFO: prompting_length = 5
+26-03-28 10:53:36.467 - INFO: prompting_type = SD
+26-03-28 10:53:36.467 - INFO: save_fig = True
+26-03-28 10:53:36.467 - INFO: save_name = test.png
+26-03-28 10:53:36.468 - INFO: save_path = ../../output/AdaCLIP/miniled/zero_shot_miniled_TypeB_1
+26-03-28 10:53:36.469 - INFO: testing_data = miniled
+26-03-28 10:53:36.469 - INFO: testing_model = dataset
+26-03-28 10:53:36.470 - INFO: use_hsf = True
+26-03-28 10:55:07.518 - INFO: miniled_TypeB_1 		I-Auroc:86.99 	I-F1:76.00 	I-AP:84.52 	P-Auroc:90.12 	P-F1:26.03 	P-AP:22.58
+26-03-28 10:55:07.520 - INFO:         Average 		I-Auroc:86.99 	I-F1:76.00 	I-AP:84.52 	P-Auroc:90.12 	P-F1:26.03 	P-AP:22.58

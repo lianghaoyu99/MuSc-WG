@@ -34,7 +34,7 @@ def visualizer(img_path, gt_mask, anomaly_map, save_dir, img_size=518, data_dir=
         print(f"Warning: Could not read image at {img_path}")
         return
     ori_img = cv2.cvtColor(ori_img, cv2.COLOR_BGR2RGB)
-    vis = cv2.cvtColor(cv2.resize(ori_img, resize_dims), cv2.COLOR_BGR2RGB)  # RGB
+    vis = cv2.resize(ori_img.copy(), resize_dims)  # RGB
     
     # 异常图
     mask = normalize(anomaly_map)
@@ -43,10 +43,10 @@ def visualizer(img_path, gt_mask, anomaly_map, save_dir, img_size=518, data_dir=
     # 可视化 GT
     if isinstance(gt_mask, torch.Tensor):
         gt_mask = gt_mask.squeeze().cpu().numpy()
-    gt_mask = gt_mask.astype(np.uint8)
+    gt_mask = (gt_mask * 255).astype(np.uint8) if gt_mask.max() <= 1.0 else gt_mask.astype(np.uint8)
+    gt_mask = np.ascontiguousarray(gt_mask)
     gt_mask = cv2.resize(gt_mask, resize_dims, interpolation=cv2.INTER_NEAREST)
     contours, _ = cv2.findContours(gt_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    cv2.drawContours(vis, contours, -1, (0, 255, 0), 2)  # 绿色描边
 
     vis = cv2.cvtColor(vis, cv2.COLOR_RGB2BGR)  # BGR
     
@@ -56,7 +56,7 @@ def visualizer(img_path, gt_mask, anomaly_map, save_dir, img_size=518, data_dir=
     cv2.imwrite(save_vis, vis)
     
     # 保存一张纯GT的图做对比
-    ori_gt = cv2.cvtColor(cv2.resize(ori_img, resize_dims), cv2.COLOR_BGR2RGB)
+    ori_gt = cv2.resize(ori_img.copy(), resize_dims)
     cv2.drawContours(ori_gt, contours, -1, (0, 255, 0), 2)
     cv2.imwrite(os.path.join(save_dir, f"{base}_gt.png"), cv2.cvtColor(ori_gt, cv2.COLOR_RGB2BGR))
 

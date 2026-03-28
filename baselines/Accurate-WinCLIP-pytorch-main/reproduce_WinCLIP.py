@@ -125,7 +125,7 @@ def vis(img_path, gt_mask, anomaly_map, save_dir, img_size=518, data_dir=None):
     gt_mask = cv2.resize(gt_mask, (img_size, img_size), interpolation=cv2.INTER_NEAREST)
     contours, _ = cv2.findContours(gt_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     ori_gt = ori.copy()
-    cv2.drawContours(ori_gt, contours, -1, (0, 255, 0), 2)  # Green contour
+    cv2.drawContours(ori_gt, contours, -1, (0, 255, 0), 1)  # Green contour (thickness 1 for small image_size)
     
     # Anomaly map
     if isinstance(anomaly_map, torch.Tensor):

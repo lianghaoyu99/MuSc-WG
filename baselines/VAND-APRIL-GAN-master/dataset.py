@@ -22,7 +22,10 @@ class VisaDataset(data.Dataset):
 			self.cls_names = [obj_name]
 			save_dir = os.path.join(save_dir, 'k_shot.txt')
 		else:
-			self.cls_names = list(meta_info.keys())
+			if obj_name is not None and obj_name != 'all':
+				self.cls_names = [obj_name]
+			else:
+				self.cls_names = list(meta_info.keys())
 		for cls_name in self.cls_names:
 			if mode == 'train':
 				data_tmp = meta_info[cls_name]
@@ -76,7 +79,10 @@ class MVTecDataset(data.Dataset):
 			self.cls_names = [obj_name]
 			save_dir = os.path.join(save_dir, 'k_shot.txt')
 		else:
-			self.cls_names = list(meta_info.keys())
+			if obj_name is not None and obj_name != 'all':
+				self.cls_names = [obj_name]
+			else:
+				self.cls_names = list(meta_info.keys())
 		for cls_name in self.cls_names:
 			if mode == 'train':
 				data_tmp = meta_info[cls_name]

@@ -14,8 +14,8 @@ data_root_miniled = "../../data/miniled_AD"
 test_configs = [
     # {"dataset": "mvtec", "path": data_root_mvtec, "class_name": "transistor", "checkpoint": "./checkpoints/9_12_4_multiscale/epoch_15.pth"}, 
     # {"dataset": "mvtec", "path": data_root_mvtec, "class_name": "all", "checkpoint": "./checkpoints/9_12_4_multiscale/epoch_15.pth"}, 
-    {"dataset": "microled", "path": data_root_microled, "class_name": "microled_TypeA_1", "checkpoint": "./checkpoints/9_12_4_multiscale/epoch_15.pth"}, 
-    # {"dataset": "miniled", "path": data_root_miniled, "class_name": "all", "checkpoint": "./checkpoints/9_12_4_multiscale/epoch_15.pth"},   
+    # {"dataset": "microled", "path": data_root_microled, "class_name": "microled_TypeA_1", "checkpoint": "./checkpoints/9_12_4_multiscale/epoch_15.pth"}, 
+    {"dataset": "miniled", "path": data_root_miniled, "class_name": "miniled_TypeB_1", "checkpoint": "./checkpoints/9_12_4_multiscale/epoch_15.pth"},   
 ]
 
 for config in test_configs:

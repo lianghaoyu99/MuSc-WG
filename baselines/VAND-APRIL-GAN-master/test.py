@@ -127,13 +127,13 @@ def test(args):
         ])
     if dataset_name == 'mvtec':
         test_data = MVTecDataset(root=dataset_dir, transform=preprocess, target_transform=transform,
-                                 aug_rate=-1, mode='test')
+                                 aug_rate=-1, mode='test', obj_name=args.class_name)
     elif dataset_name == 'microled':
-        test_data = MicroledDataset(root=dataset_dir, transform=preprocess, target_transform=transform, aug_rate=-1, mode='test')
+        test_data = MicroledDataset(root=dataset_dir, transform=preprocess, target_transform=transform, aug_rate=-1, mode='test', obj_name=args.class_name)
     elif dataset_name == 'miniled':
-        test_data = MiniledDataset(root=dataset_dir, transform=preprocess, target_transform=transform, aug_rate=-1, mode='test')
+        test_data = MiniledDataset(root=dataset_dir, transform=preprocess, target_transform=transform, aug_rate=-1, mode='test', obj_name=args.class_name)
     else:
-        test_data = VisaDataset(root=dataset_dir, transform=preprocess, target_transform=transform, mode='test')
+        test_data = VisaDataset(root=dataset_dir, transform=preprocess, target_transform=transform, mode='test', obj_name=args.class_name)
     test_dataloader = torch.utils.data.DataLoader(test_data, batch_size=1, shuffle=False)
     obj_list = test_data.get_cls_names()
 
@@ -212,17 +212,45 @@ def test(args):
             results['anomaly_maps'].append(anomaly_map)
 
             # visualization
-            path = items['img_path']
-            cls = path[0].split('/')[-2]
-            filename = path[0].split('/')[-1]
-            vis = cv2.cvtColor(cv2.resize(cv2.imread(path[0]), (img_size, img_size)), cv2.COLOR_BGR2RGB)  # RGB
-            mask = normalize(anomaly_map[0])
-            vis = apply_ad_scoremap(vis, mask)
-            vis = cv2.cvtColor(vis, cv2.COLOR_RGB2BGR)  # BGR
-            save_vis = os.path.join(save_path, 'imgs', cls_name[0], cls)
-            if not os.path.exists(save_vis):
-                os.makedirs(save_vis)
-            cv2.imwrite(os.path.join(save_vis, filename), vis)
+            if getattr(args, 'visulize_bool', False):
+                path = items['img_path'][0]
+                norm_img_path = os.path.normpath(path)
+                norm_data_dir = os.path.normpath(dataset_dir)
+                
+                if norm_data_dir in norm_img_path:
+                    rel_path = norm_img_path.replace(norm_data_dir, "").lstrip(os.sep)
+                else:
+                    rel_path = os.path.basename(path)
+                    
+                rel_path = rel_path.replace(os.sep, "-").replace("/", "-")
+                base = rel_path.replace(".png", "")
+                
+                ori = cv2.imread(path)
+                ori = cv2.cvtColor(ori, cv2.COLOR_BGR2RGB)
+                ori_img = cv2.resize(ori.copy(), (img_size, img_size))
+                
+                # GT contour
+                gt_mask_np = gt_mask[0].squeeze().detach().cpu().numpy()
+                if gt_mask_np.ndim == 3:
+                    gt_mask_np = gt_mask_np[0]
+                gt_mask_np = (gt_mask_np * 255).astype(np.uint8) if gt_mask_np.max() <= 1.0 else gt_mask_np.astype(np.uint8)
+                gt_mask_np = np.ascontiguousarray(gt_mask_np)
+                gt_mask_np = cv2.resize(gt_mask_np, (img_size, img_size), interpolation=cv2.INTER_NEAREST)
+                contours, _ = cv2.findContours(gt_mask_np, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                
+                save_dir = os.path.join(save_path, 'visualization', dataset_name, cls_name[0])
+                os.makedirs(save_dir, exist_ok=True)
+                
+                ori_gt = ori_img.copy()
+                cv2.drawContours(ori_gt, contours, -1, (0, 255, 0), 2)
+                save_gt = os.path.join(save_dir, f"{base}_gt.png")
+                cv2.imwrite(save_gt, cv2.cvtColor(ori_gt, cv2.COLOR_RGB2BGR))
+                
+                # Anomaly map
+                mask = normalize(anomaly_map[0])
+                vis = apply_ad_scoremap(ori_img, mask)
+                save_vis = os.path.join(save_dir, f"{base}_VAND.png")
+                cv2.imwrite(save_vis, cv2.cvtColor(vis, cv2.COLOR_RGB2BGR))
     
     end_time_all = time.time()
     print('VAND: {}ms per image'.format((end_time_all-start_time_all)*1000/dataset_num))
@@ -326,6 +354,8 @@ if __name__ == '__main__':
     parser.add_argument("--few_shot_features", type=int, nargs="+", default=[3, 6, 9], help="features used for few shot")
     parser.add_argument("--image_size", type=int, default=224, help="image size")
     parser.add_argument("--mode", type=str, default="zero_shot", help="zero shot or few shot")
+    parser.add_argument("--visulize_bool", action="store_true", help="whether to save visualization results")
+    parser.add_argument("--class_name", type=str, default="all", help="specific category to test")
     # few shot
     parser.add_argument("--k_shot", type=int, default=10, help="e.g., 10-shot, 5-shot, 1-shot")
     parser.add_argument("--seed", type=int, default=10, help="random seed")

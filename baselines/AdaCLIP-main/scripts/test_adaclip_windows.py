@@ -14,8 +14,8 @@ data_root_miniled = "../../data/miniled_AD"
 test_configs = [
     # {"dataset": "mvtec", "path": data_root_mvtec, "class_name": "bottle", "checkpoint": "./weights/pretrained_visa_clinicdb.pth"}, 
     # {"dataset": "mvtec", "path": data_root_mvtec, "class_name": "all", "checkpoint": "./weights/pretrained_visa_clinicdb.pth"}, 
-    {"dataset": "microled", "path": data_root_microled, "class_name": "microled_TypeA_1", "checkpoint": "./weights/pretrained_visa_clinicdb.pth"}, 
-    # {"dataset": "miniled", "path": data_root_miniled, "class_name": "all", "checkpoint": "./weights/pretrained_visa_clinicdb.pth"},   
+    # {"dataset": "microled", "path": data_root_microled, "class_name": "microled_TypeA_1", "checkpoint": "./weights/pretrained_visa_clinicdb.pth"}, 
+    {"dataset": "miniled", "path": data_root_miniled, "class_name": "miniled_TypeB_1", "checkpoint": "./weights/pretrained_visa_clinicdb.pth"},   
 ]
 
 for config in test_configs:

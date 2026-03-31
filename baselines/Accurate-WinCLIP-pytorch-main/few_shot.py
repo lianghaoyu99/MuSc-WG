@@ -25,7 +25,7 @@ def memory(model, obj_list, dataset_dir, save_path, preprocess, transform, k_sho
     normal_features_ls = {}
     mid_memory, large_memory, patch_memory = initialize_memory(obj_list)
     for i in range(len(obj_list)):
-        if dataset_name == 'mvtec':
+        if dataset_name in ['mvtec', 'microled', 'miniled']:
             normal_data = MVTecDataset(root=dataset_dir, transform=preprocess, target_transform=transform,
                                        aug_rate=-1, mode='train', k_shot=k_shot, save_dir=save_path,
                                        obj_name=obj_list[i])

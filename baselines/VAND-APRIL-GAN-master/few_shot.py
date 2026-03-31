@@ -5,7 +5,7 @@ def memory(model_name, model, obj_list, dataset_dir, save_path, preprocess, tran
            few_shot_features, dataset_name, device):
     mem_features = {}
     for obj in obj_list:
-        if dataset_name == 'mvtec':
+        if dataset_name in ['mvtec', 'microled', 'miniled']:
             data = MVTecDataset(root=dataset_dir, transform=preprocess, target_transform=transform,
                                 aug_rate=-1, mode='train', k_shot=k_shot, save_dir=save_path, obj_name=obj)
         else:

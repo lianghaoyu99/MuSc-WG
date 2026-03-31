@@ -29,7 +29,12 @@ class VisaDataset(data.Dataset):
 		for cls_name in self.cls_names:
 			if mode == 'train':
 				data_tmp = meta_info[cls_name]
-				indices = torch.randint(0, len(data_tmp), (k_shot,))
+				# Use fixed seed and sampling without replacement (like random.sample)
+				torch.manual_seed(10)
+				# Generate random permutation of indices
+				perm_indices = torch.randperm(len(data_tmp))
+				# Take the first k_shot indices
+				indices = perm_indices[:min(k_shot, len(data_tmp))]
 				for i in range(len(indices)):
 					self.data_all.append(data_tmp[indices[i]])
 					with open(save_dir, "a") as f:
@@ -86,7 +91,12 @@ class MVTecDataset(data.Dataset):
 		for cls_name in self.cls_names:
 			if mode == 'train':
 				data_tmp = meta_info[cls_name]
-				indices = torch.randint(0, len(data_tmp), (k_shot,))
+				# Use fixed seed and sampling without replacement (like random.sample)
+				torch.manual_seed(10)
+				# Generate random permutation of indices
+				perm_indices = torch.randperm(len(data_tmp))
+				# Take the first k_shot indices
+				indices = perm_indices[:min(k_shot, len(data_tmp))]
 				for i in range(len(indices)):
 					self.data_all.append(data_tmp[indices[i]])
 					with open(save_dir, "a") as f:

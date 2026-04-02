@@ -112,7 +112,7 @@ class Dataset(data.Dataset):
 
         self.prompt_data_all = meta_train_info
 
-        if class_name is not None:
+        if class_name is not None and class_name.lower() != 'all':
             self.cls_names = [class_name]
         else:
             self.cls_names = list(meta_test_info.keys())
@@ -221,7 +221,7 @@ class PromptDataset(data.Dataset):
         else:
             meta_train_info = meta_info_json['test']
 
-        if class_name is not None:
+        if class_name is not None and class_name.lower() != 'all':
             self.cls_names = [class_name]
         else:
             self.cls_names = list(meta_train_info.keys())
@@ -251,13 +251,20 @@ class PromptDataset(data.Dataset):
                 for cls_name in self.cls_names:
                     data_tmp = meta_train_info[cls_name]
                     #data_tmp = [item for item in data_tmp if item['anomaly'] == 1] # 排除OK
-                    torch.manual_seed(seed)
-                    indices = torch.randint(0, len(data_tmp), (self.k_shots,))
-                    self.prompt_data_all.extend([data_tmp[i] for i in indices])
+                    
+                    # Deterministic sampling without replacement
+                    import random
+                    random.seed(seed)
+                    if len(data_tmp) >= self.k_shots:
+                        sampled_data = random.sample(data_tmp, self.k_shots)
+                    else:
+                        sampled_data = data_tmp # fallback if not enough shots
+                    
+                    self.prompt_data_all.extend(sampled_data)
 
-                    for i in range(len(indices)):
+                    for item in sampled_data:
                         with open(prompt_save_dir, "a") as f:
-                            f.write(data_tmp[indices[i]]['img_path'] + '\n')
+                            f.write(item['img_path'] + '\n')
 
         self.length = len(self.prompt_data_all)
 

@@ -349,12 +349,16 @@ def test(args):
                     visualizer(img_p, gt_m, pr_m, save_dir=os.path.join(args.save_path, 'visualization', dataset_name), img_size=args.image_size, data_dir=dataset_dir)
 
     end_time_all = time.time()
-    print('AdaptCLIP: {}ms per image'.format((end_time_all - start_time_all) * 1000 / dataset_num))
+    efficiency_info = 'AdaptCLIP: {}ms per image'.format((end_time_all - start_time_all) * 1000 / dataset_num)
+    print(efficiency_info)
+    logger.info(efficiency_info)
     if torch.cuda.is_available():
-        print('AdaptCLIP GPU Memory: {:.2f} MB (Allocated), {:.2f} MB (Reserved)'.format(
+        gpu_info = 'AdaptCLIP GPU Memory: {:.2f} MB (Allocated), {:.2f} MB (Reserved)'.format(
             torch.cuda.max_memory_allocated() / 1024 / 1024,
             torch.cuda.max_memory_reserved() / 1024 / 1024
-        ))
+        )
+        print(gpu_info)
+        logger.info(gpu_info)
 
     # ====================== Evaluation ======================
     results_eval = dict(sample_ids=sample_ids, gt_masks=gt_masks, pr_masks=pr_masks, cls_names=cls_names, gt_anomalys=gt_anomalys, pr_anomalys=pr_anomalys, query_paths=query_paths)

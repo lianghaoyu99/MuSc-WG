@@ -253,12 +253,16 @@ def test(args):
                 cv2.imwrite(save_vis, cv2.cvtColor(vis, cv2.COLOR_RGB2BGR))
     
     end_time_all = time.time()
-    print('VAND: {}ms per image'.format((end_time_all-start_time_all)*1000/dataset_num))
+    efficiency_info = 'VAND: {}ms per image'.format((end_time_all-start_time_all)*1000/dataset_num)
+    print(efficiency_info)
+    logger.info(efficiency_info)
     if torch.cuda.is_available():
-        print('VAND GPU Memory: {:.2f} MB (Allocated), {:.2f} MB (Reserved)'.format(
+        gpu_info = 'VAND GPU Memory: {:.2f} MB (Allocated), {:.2f} MB (Reserved)'.format(
             torch.cuda.max_memory_allocated() / 1024 / 1024,
             torch.cuda.max_memory_reserved() / 1024 / 1024
-        ))
+        )
+        print(gpu_info)
+        logger.info(gpu_info)
 
     # metrics
     table_ls = []

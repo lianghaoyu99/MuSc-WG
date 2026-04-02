@@ -21,8 +21,8 @@ shots = [0]
 # Define test configurations
 test_configs = [
     # {"dataset": "mvtec", "path": data_root_mvtec, "class_name": "transistor", "train_dataset": "visa"}, # Example
-    # {"dataset": "microled", "path": data_root_microled, "class_name": "microled_TypeA_1", "train_dataset": "visa"}, # Test all classes in microled
-    {"dataset": "miniled", "path": data_root_miniled, "class_name": "miniled_TypeB_1", "train_dataset": "visa"},   # Test all classes in miniled
+    {"dataset": "microled", "path": data_root_microled, "class_name": "all", "train_dataset": "visa"}, # Test all classes in microled
+    {"dataset": "miniled", "path": data_root_miniled, "class_name": "all", "train_dataset": "visa"},   # Test all classes in miniled
 ]
 
 for config in test_configs:
@@ -46,7 +46,7 @@ for config in test_configs:
             base_dir = f"{n_ctx}_{vl_reduction}_{pq_mid_dim}_train_on_{train_dataset}_3adapters_batch8"
             
             # Paths
-            save_dir = f"../../output/AdaptCLIP-main/{test_dataset}/{base_dir}"
+            save_dir = f"../../output/AdaptCLIP-main/{test_dataset}/zero_shot_{target_class}/{base_dir}_seed{seed}"
             model_dir = f"./adaptclip_checkpoints/{base_dir}"
             checkpoint_path = f"{model_dir}/epoch_15.pth"
             
@@ -77,17 +77,15 @@ for config in test_configs:
                 "--textual_learner",
                 "--pq_learner",
                 "--pq_context",
-                "--visulize_bool"
+                "--visulize_bool",
+                "--class_name", target_class
             ]
-            
-            if target_class:
-                 cmd.extend(["--class_name", target_class])
 
             # Set environment variable for CUDA
             env = os.environ.copy()
             env["CUDA_VISIBLE_DEVICES"] = device
             
-            print(f"Running test for dataset={test_dataset}, shot={shot}, seed={seed}...")
+            print(f"Running test for dataset={test_dataset}, class={target_class}, shot={shot}, seed={seed}...")
             
             try:
                 subprocess.run(cmd, env=env, check=True)

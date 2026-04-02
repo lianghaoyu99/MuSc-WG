@@ -102,12 +102,16 @@ def train(args):
         end_time = time.time()
         total_time = end_time - start_time
         total_images = len(test_data)
-        print('AdaCLIP: {:.2f}ms per image'.format((total_time) * 1000 / total_images))
+        efficiency_info = 'AdaCLIP: {:.2f}ms per image'.format((total_time) * 1000 / total_images)
+        print(efficiency_info)
+        logger.info(efficiency_info)
         if torch.cuda.is_available() and 'cuda' in device:
-            print('AdaCLIP GPU Memory: {:.2f} MB (Allocated), {:.2f} MB (Reserved)'.format(
+            gpu_info = 'AdaCLIP GPU Memory: {:.2f} MB (Allocated), {:.2f} MB (Reserved)'.format(
                 torch.cuda.max_memory_allocated(device) / 1024 / 1024,
                 torch.cuda.max_memory_reserved(device) / 1024 / 1024
-            ))
+            )
+            print(gpu_info)
+            logger.info(gpu_info)
 
         for tag, data in metric_dict.items():
             logger.info(

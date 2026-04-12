@@ -11,7 +11,7 @@ microled_classes = [
 ]
 
 miniled_classes = [
-    'miniled_TypeA_1', 'miniled_TypeA_2', 'miniled_TypeA_3', 'miniled_TypeB_1', 'miniled_TypeC_1'
+    'miniled_TypeA_1', 'miniled_TypeA_2', 'miniled_TypeB_1', 'miniled_TypeB_2'
 ]
 
 def load_led(category, k_shot, data_path):

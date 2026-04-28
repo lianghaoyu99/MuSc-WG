@@ -48,6 +48,7 @@ class MuSc():
         self.dataset = cfg['datasets']['dataset_name']
         self.vis = cfg['testing']['vis']
         self.vis_type = cfg['testing']['vis_type']
+        self.vis_overlay = cfg['testing'].get('vis_overlay', True)
         self.save_excel = cfg['testing']['save_excel']
         self.vis_tsne = cfg['testing'].get('vis_tsne', False)
         self.tsne_perplexity = cfg['testing'].get('tsne_perplexity', 30)
@@ -123,12 +124,14 @@ class MuSc():
         def normalization01(img):
             return (img - img.min()) / (img.max() - img.min() + 1e-8)
             
-        def apply_ad_scoremap(image, scoremap, alpha=0.5):
+        def apply_ad_scoremap(image, scoremap, alpha=0.5, overlay=True):
             np_image = np.asarray(image, dtype=float)
             scoremap = (scoremap * 255).astype(np.uint8)
             scoremap = cv2.applyColorMap(scoremap, cv2.COLORMAP_JET)
             scoremap = cv2.cvtColor(scoremap, cv2.COLOR_BGR2RGB)
-            return (alpha * np_image + (1 - alpha) * scoremap).astype(np.uint8)
+            if overlay:
+                return (alpha * np_image + (1 - alpha) * scoremap).astype(np.uint8)
+            return scoremap
 
         def draw_mask_contour(image, mask):
             if mask.ndim == 3:
@@ -173,7 +176,7 @@ class MuSc():
                 anomaly_map = normalization01(anomaly_map)
                 
             anomaly_map = cv2.resize(anomaly_map, (self.image_size, self.image_size))
-            vis = apply_ad_scoremap(ori_img, anomaly_map)
+            vis = apply_ad_scoremap(ori_img, anomaly_map, overlay=self.vis_overlay)
             save_vis = os.path.join(save_dir, f"{base_name}.png")
             cv2.imwrite(save_vis, cv2.cvtColor(vis, cv2.COLOR_RGB2BGR))
 
@@ -311,12 +314,12 @@ class MuSc():
                 ablation_detail_start = 1       # 1: Skip Level 0 (Noise)
                 ablation_keep_ll = True         # True: Include Low Frequency Approximation
 
-                ablation_gamma   = 2.0          # Moderate Gamma
-                ablation_use_spot_weight = True  # Suppress patterns found in ANY other image (Occasional Normal Pattern)
-                ablation_use_morphology = True  # Toggle for Morphological Optimization (Opening/Closing + Smoothing)
+                ablation_gamma   = 1.0          # Moderate Gamma
+                ablation_use_spot_weight = False  # Suppress patterns found in ANY other image (Occasional Normal Pattern)
+                ablation_use_morphology = False  # Toggle for Morphological Optimization (Opening/Closing + Smoothing)
                 
                 # Morphological Parameters
-                ablation_morph_open_k = 1       # Opening kernel size (remove noise). 1 = disabled.
+                ablation_morph_open_k = 3       # Opening kernel size (remove noise). 1 = disabled.
                 ablation_morph_close_k = 3      # Closing kernel size (fill gaps). 3 is gentle.
                 ablation_morph_smooth_k = 3     # Gaussian smoothing kernel size (remove blockiness).
                 ablation_morph_sigma = 0.5      # Gaussian blur standard deviation.

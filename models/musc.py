@@ -50,6 +50,7 @@ class MuSc():
         self.vis_type = cfg['testing']['vis_type']
         self.vis_overlay = cfg['testing'].get('vis_overlay', True)
         self.save_excel = cfg['testing']['save_excel']
+        self.use_rscin = cfg['testing'].get('use_rscin', True)
         self.vis_tsne = cfg['testing'].get('vis_tsne', False)
         self.tsne_perplexity = cfg['testing'].get('tsne_perplexity', 30)
         self.tsne_n_iter = cfg['testing'].get('tsne_n_iter', 1000)
@@ -459,14 +460,18 @@ class MuSc():
 
         B = anomaly_maps.shape[0]   # the number of unlabeled test images
         ac_score = np.array(anomaly_maps).reshape(B, -1).max(-1)
-        # RsCIN
-        if self.dataset == 'visa':
-            k_score = [1, 8, 9]
-        elif self.dataset == 'mvtec_ad':
-            k_score = [1, 2, 3]
+        if self.use_rscin:
+            # RsCIN
+            if self.dataset == 'visa':
+                k_score = [1, 8, 9]
+            elif self.dataset == 'mvtec_ad':
+                k_score = [1, 2, 3]
+            else:
+                k_score = [1, 2, 3]
+            scores_cls = RsCIN(ac_score, class_tokens, k_list=k_score)
         else:
-            k_score = [1, 2, 3]
-        scores_cls = RsCIN(ac_score, class_tokens, k_list=k_score)
+            # Disable RsCIN to compare with raw image-level scores.
+            scores_cls = ac_score
 
         print('computing metrics...')
         pr_sp = np.array(scores_cls)

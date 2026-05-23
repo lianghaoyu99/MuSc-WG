@@ -13,7 +13,7 @@ models:
 device: 0
 testing:
   output_dir: 'output'
-  use_rscin: False  # set False to disable RsCIN for ablation
+  use_rscin: True  # set False to disable RsCIN for ablation
   vis: True
   vis_overlay: False  # True: overlay on original image, False: heatmap only
   vis_type: single_norm # choice ['single_norm', 'whole_norm']

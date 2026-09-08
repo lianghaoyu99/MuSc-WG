@@ -1,7 +1,7 @@
 datasets:
-  dataset_name: 'miniled_ad'  # choice ['mvtec_ad', 'miniled_ad', 'microled_ad']
-  data_path: ./data/miniled_AD/  # ./data/mvtec_anomaly_detection/ ./data/miniled_AD/ ./data/microled_AD/
-  class_name: 'ALL'  # 'ALL' 'transistor' 'miniled_TypeA_1' 'microled_TypeA_1'
+  dataset_name: 'mvtec_ad'  # choice ['mvtec_ad', 'miniled_ad', 'microled_ad']
+  data_path: ./data/mvtec_anomaly_detection/  # ./data/mvtec_anomaly_detection/ ./data/miniled_AD/ ./data/microled_AD/
+  class_name: 'transistor'  # 'ALL' 'transistor' 'miniled_TypeA_1' 'microled_TypeA_1'
   img_resize: 518  # 512 is for Patch 16 (32*16), for Patch 14 use 518 (37*14)
   divide_num: 1
 models:
@@ -22,6 +22,14 @@ testing:
   tsne_perplexity: 30
   tsne_n_iter: 1000
   tsne_source: 'lnamd' # 'class' or 'lnamd'
+  use_manifold: True  # Add cross-frequency neighbor-disagreement scoring
+  manifold_k: 10  # Number of nearest reference images retained per patch and frequency band
+  lambda_m: 0.1  # Weight of the manifold score added to the original MuSc score
+  manifold_level: 1  # Compare LL1 against LH1, HL1 and HH1
+  manifold_normalize: True  # Robustly normalize both score maps before fusion
+  manifold_layers: [-1]  # Use only the last selected backbone layer for manifold scoring
+  manifold_grid_size: 19  # Pool 37x37 band features before KNN, then upsample the score
+  manifold_ref_chunk_size: 2  # Reference images processed together; lower saves GPU memory
 
 
 # models['backbone_name'] choice:

@@ -266,8 +266,8 @@ class MuSc():
 
         for band_name in band_names:
             band_features = frequency_features[band_name]
-            for layer_idx in self.manifold_layers:
-                layer_feature = band_features[:, :, layer_idx, :]
+            for selected_position, layer_idx in enumerate(self.manifold_layers):
+                layer_feature = band_features[:, :, selected_position, :]
                 source_grid_size = int(math.sqrt(layer_feature.shape[1]))
                 target_grid_size = min(
                     self.manifold_grid_size, source_grid_size
@@ -329,11 +329,9 @@ class MuSc():
                     else disagreement_sum + disagreement
                 )
                 del band_features, band_indices, disagreement
-                torch.cuda.empty_cache()
 
             layer_scores.append((disagreement_sum / len(detail_bands)).cpu())
             del reference_indices, disagreement_sum
-            torch.cuda.empty_cache()
 
         score = torch.stack(layer_scores, dim=0).mean(dim=0).to(self.device)
         if score.shape[1] != target_patch_count:
@@ -421,17 +419,6 @@ class MuSc():
 
             # LNAMD 局部邻域聚合生成多尺度特征
             feature_dim = patch_tokens_list[0][0].shape[-1]  # 提取特征维度
-            manifold_band_names = [
-                f'll{self.manifold_level}',
-                f'lh{self.manifold_level}',
-                f'hl{self.manifold_level}',
-                f'hh{self.manifold_level}',
-            ]
-            manifold_features = {
-                band_name: {str(i): [] for i in self.manifold_layers}
-                for band_name in manifold_band_names
-            }
-            manifold_captured = False
             anomaly_maps_r = torch.tensor([]).double()  # 创建一个空的double类型张量，用于存储不同聚合半径r计算得到的异常图
             for r in self.r_list:
                 start_time = time.time()
@@ -470,27 +457,12 @@ class MuSc():
                 LNAMD_r = WTConvLNAMDStatic(device=self.device, feature_dim=feature_dim, feature_layer=self.features_list, r=r,
                                             wt_type=ablation_wt_type, padding_mode=ablation_padding, include_level0=ablation_level0,
                                             use_details=ablation_use_details, detail_start_level=ablation_detail_start, keep_ll=ablation_keep_ll)
-                capture_manifold = (
-                    self.use_manifold
-                    and not manifold_captured
-                    and LNAMD_r.wt_levels > self.manifold_level
-                )
                 Z_layers = {}
                 for im in range(len(patch_tokens_list)):  # 遍历所有batch的patch tokens(l,b,p,d)
                     patch_tokens = [p.to(self.device) for p in patch_tokens_list[im]]  # 提取局部特征patch tokens
                     with torch.no_grad(), torch.cuda.amp.autocast():
-                        if capture_manifold:
-                            features, frequency_features = LNAMD_r._embed(
-                                patch_tokens, return_components=True
-                            )
-                            self._append_manifold_features(
-                                manifold_features,
-                                frequency_features,
-                                manifold_band_names,
-                            )
-                        else:
-                            features = LNAMD_r._embed(patch_tokens)
-                        features = F.normalize(features, dim=-1, eps=1e-12)
+                        features = LNAMD_r._embed(patch_tokens)
+                        features /= features.norm(dim=-1, keepdim=True)
                         # 总结：Unfold将每个位置周围的r×r邻域提取出来，adaptive_avg_pool1d将每个邻域的特征聚合为固定维度的特征向量，然后用stack将不同深度层的特征组合在一起
                         for l in range(len(self.features_list)):  # 按层分离并存储特征
                             # save the aggregated features
@@ -524,9 +496,6 @@ class MuSc():
                         current_batch_labels = gt_list[start_idx:end_idx]
                         tsne_labels.extend(current_batch_labels)
 
-                if capture_manifold:
-                    manifold_captured = True
-
                 end_time = time.time()
                 print('LNAMD-{}: {}ms per image'.format(r, (end_time-start_time)*1000/subset_num))
 
@@ -559,46 +528,71 @@ class MuSc():
                 print('MSM: {}ms per image'.format((end_time-start_time)*1000/subset_num))
             anomaly_maps_iter = torch.mean(anomaly_maps_r, 0).to(self.device)  # 对不同r的异常图取平均
 
+            # The original MuSc path ends here. Release its last feature cache
+            # before allocating any tensors for the optional manifold branch.
+            del Z_layers, features, patch_tokens, LNAMD_r
+            torch.cuda.empty_cache()
+
             if self.use_manifold and subset_num < 2:
                 print('Skipping manifold scoring: at least two images are required.')
             elif self.use_manifold:
-                if not manifold_captured:
-                    print(
-                        f'No r produced level {self.manifold_level}; '
-                        'extracting manifold frequency features separately.'
-                    )
-                    manifold_extractor = WTConvLNAMDStatic(
-                        device=self.device,
-                        feature_dim=feature_dim,
-                        feature_layer=self.features_list,
-                        wt_levels=self.manifold_level + 1,
-                        wt_type=ablation_wt_type,
-                        padding_mode=ablation_padding,
-                        include_level0=ablation_level0,
-                        use_details=True,
-                        detail_start_level=self.manifold_level,
-                        keep_ll=ablation_keep_ll,
-                    )
-                    for patch_tokens_batch in patch_tokens_list:
-                        patch_tokens = [p.to(self.device) for p in patch_tokens_batch]
-                        with torch.no_grad(), torch.cuda.amp.autocast():
-                            _, frequency_features = manifold_extractor._embed(
-                                patch_tokens, return_components=True
-                            )
-                            self._append_manifold_features(
-                                manifold_features,
-                                frequency_features,
-                                manifold_band_names,
-                            )
-                    del manifold_extractor
-                    manifold_captured = True
+                manifold_band_names = [
+                    f'll{self.manifold_level}',
+                    f'lh{self.manifold_level}',
+                    f'hl{self.manifold_level}',
+                    f'hh{self.manifold_level}',
+                ]
+                manifold_features = {
+                    band_name: {str(i): [] for i in self.manifold_layers}
+                    for band_name in manifold_band_names
+                }
+                selected_feature_layers = [
+                    self.features_list[i] for i in self.manifold_layers
+                ]
+                manifold_extractor = WTConvLNAMDStatic(
+                    device=self.device,
+                    feature_dim=feature_dim,
+                    feature_layer=selected_feature_layers,
+                    wt_levels=self.manifold_level + 1,
+                    wt_type=ablation_wt_type,
+                    padding_mode=ablation_padding,
+                    include_level0=ablation_level0,
+                    use_details=True,
+                    detail_start_level=self.manifold_level,
+                    keep_ll=ablation_keep_ll,
+                )
+                print(
+                    'Extracting manifold bands after original MuSc '
+                    f'(layers={self.manifold_layers}, grid={self.manifold_grid_size})'
+                )
+                for patch_tokens_batch in patch_tokens_list:
+                    selected_patch_tokens = [
+                        patch_tokens_batch[i].to(self.device)
+                        for i in self.manifold_layers
+                    ]
+                    with torch.no_grad(), torch.cuda.amp.autocast():
+                        _, frequency_features = manifold_extractor._embed(
+                            selected_patch_tokens, return_components=True
+                        )
+                        self._append_manifold_features(
+                            manifold_features,
+                            frequency_features,
+                            manifold_band_names,
+                        )
+                    del selected_patch_tokens, frequency_features
+                del manifold_extractor
+                torch.cuda.empty_cache()
 
+                if self.device.type == 'cuda':
+                    torch.cuda.synchronize(self.device)
                 manifold_start_time = time.time()
                 manifold_score = self._compute_manifold_score(
                     manifold_features,
                     manifold_band_names,
                     target_patch_count=anomaly_maps_iter.shape[1],
                 ).to(anomaly_maps_iter.dtype)
+                if self.device.type == 'cuda':
+                    torch.cuda.synchronize(self.device)
                 if self.manifold_normalize:
                     anomaly_maps_iter = self._robust_normalize_score(
                         anomaly_maps_iter
@@ -614,7 +608,7 @@ class MuSc():
                         self.lambda_m,
                     )
                 )
-                del manifold_score
+                del manifold_score, manifold_features
                 torch.cuda.empty_cache()
 
             # anomaly_maps_iter current shape: (B, L) where L is flattened H*W

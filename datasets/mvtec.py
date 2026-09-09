@@ -5,11 +5,11 @@ import torch
 from torchvision import transforms
 import random
 
-# _CLASSNAMES = ["zipper", "capsule", "transistor"]  # "zipper", "capsule", "transistor"
+_CLASSNAMES = ["bottle", "transistor"]  # "zipper", "capsule", "transistor"
 
-_CLASSNAMES = ["bottle", "cable", "capsule", "carpet", "grid",
-            "hazelnut", "leather", "metal_nut", "pill", "screw",
-            "tile", "toothbrush", "transistor", "wood", "zipper"]
+# _CLASSNAMES = ["bottle", "cable", "capsule", "carpet", "grid",
+#             "hazelnut", "leather", "metal_nut", "pill", "screw",
+#             "tile", "toothbrush", "transistor", "wood", "zipper"]
 
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD = [0.229, 0.224, 0.225]

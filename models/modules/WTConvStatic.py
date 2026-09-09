@@ -52,7 +52,7 @@ class WTConv2dStatic(nn.Module):
         B, C, H, W = x.shape
 
         aggregated_components = []
-        frequency_components = {}
+        frequency_components = {} if return_components else None
         if self.include_level0 and self.keep_ll:
             aggregated_components.append(x)
 
@@ -90,7 +90,8 @@ class WTConv2dStatic(nn.Module):
 
             # 2. Convolution (Approximation / Low-Pass)
             next_ll = F.conv2d(x_padded, ll_filter, groups=C, padding=0, dilation=dilation)
-            frequency_components[f'll{i}'] = next_ll
+            if return_components:
+                frequency_components[f'll{i}'] = next_ll
 
             if self.keep_ll:
                 aggregated_components.append(next_ll)
@@ -103,9 +104,10 @@ class WTConv2dStatic(nn.Module):
                 curr_hl = F.conv2d(x_padded, hl_filter, groups=C, padding=0, dilation=dilation)
                 # HH (Diagonal Detail)
                 curr_hh = F.conv2d(x_padded, hh_filter, groups=C, padding=0, dilation=dilation)
-                frequency_components[f'lh{i}'] = curr_lh
-                frequency_components[f'hl{i}'] = curr_hl
-                frequency_components[f'hh{i}'] = curr_hh
+                if return_components:
+                    frequency_components[f'lh{i}'] = curr_lh
+                    frequency_components[f'hl{i}'] = curr_hl
+                    frequency_components[f'hh{i}'] = curr_hh
 
                 # Add details to aggregation
                 aggregated_components.append(curr_lh)

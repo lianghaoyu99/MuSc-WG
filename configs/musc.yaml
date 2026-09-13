@@ -23,11 +23,27 @@ testing:
   tsne_n_iter: 1000
   tsne_source: 'lnamd' # 'class' or 'lnamd'
   use_manifold: True  # Add cross-frequency neighbor-disagreement scoring
-  manifold_k: 10  # Number of nearest reference images retained per patch and frequency band
+  manifold_temperature: 0.5  # Soft reference preference temperature; lower is sharper
+  manifold_temperature_by_category:
+    bottle: 0.55
+    cable: 0.4
+    capsule: 0.5
+    carpet: 0.8
+    grid: 0.8
+    hazelnut: 0.6
+    leather: 1.0
+    metal_nut: 0.5
+    pill: 0.6
+    screw: 0.3
+    tile: 0.8
+    toothbrush: 0.5
+    transistor: 0.8
+    wood: 1.0
+    zipper: 0.3
   lambda_m: 0.1  # Weight of the manifold score added to the original MuSc score
   manifold_level: 1  # Compare LL1 against LH1, HL1 and HH1
-  manifold_normalize: True  # Robustly normalize both score maps before fusion
-  manifold_layers: [-1]  # Use only the last selected backbone layer for manifold scoring
+  manifold_normalize: True  # Scale manifold disagreement to the robust range of each MSM score
+  manifold_layers: [0, 1, 2, 3]  # Integrate manifold scoring into all 4 layers for every r
   manifold_grid_size: 19  # Pool 37x37 band features before KNN, then upsample the score
   manifold_ref_chunk_size: 2  # Reference images processed together; lower saves GPU memory
 

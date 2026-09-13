@@ -22,7 +22,7 @@ import models.backbone._backbones as _backbones
 from models.modules._LNAMD import LNAMD
 # from models.modules.WTConvLNAMD import WTConvLNAMD
 from models.modules.WTConvStatic import WTConvLNAMDStatic
-from models.modules._MSM import KNN_cosine_chunked, MSM, neighbor_disagreement
+from models.modules._MSM import MSM
 from models.modules._RsCIN import RsCIN
 from models.modules._Optimization import AnomalyMapOptimizer
 from utils.metrics import compute_metrics
@@ -57,7 +57,12 @@ class MuSc():
         self.tsne_n_iter = cfg['testing'].get('tsne_n_iter', 1000)
         self.tsne_source = cfg['testing'].get('tsne_source', 'class') # 'class' for class tokens, 'lnamd' for LNAMD features
         self.use_manifold = cfg['testing'].get('use_manifold', False)
-        self.manifold_k = cfg['testing'].get('manifold_k', 10)
+        self.manifold_temperature = float(
+            cfg['testing'].get('manifold_temperature', 0.5)
+        )
+        self.manifold_temperature_by_category = cfg['testing'].get(
+            'manifold_temperature_by_category', {}
+        ) or {}
         self.lambda_m = float(cfg['testing'].get('lambda_m', 0.1))
         self.manifold_level = int(cfg['testing'].get('manifold_level', 1))
         self.manifold_normalize = cfg['testing'].get('manifold_normalize', True)
@@ -68,6 +73,10 @@ class MuSc():
         self.manifold_layers_config = cfg['testing'].get('manifold_layers', [-1])
         if self.manifold_level < 1:
             raise ValueError("manifold_level must be at least 1 so LL/LH/HL/HH all exist.")
+        if self.manifold_temperature <= 0:
+            raise ValueError("manifold_temperature must be positive.")
+        if not isinstance(self.manifold_temperature_by_category, dict):
+            raise ValueError("manifold_temperature_by_category must be a mapping.")
         if self.manifold_grid_size < 1:
             raise ValueError("manifold_grid_size must be at least 1.")
         # the categories to be tested
@@ -247,15 +256,6 @@ class MuSc():
         plt.close()
         print(f"t-SNE plot saved to {save_path}")
 
-    @staticmethod
-    def _robust_normalize_score(score, lower_quantile=0.01, upper_quantile=0.99):
-        """Robustly map a score tensor to [0, 1] before score fusion."""
-        score_float = score.float()
-        lower = torch.quantile(score_float, lower_quantile)
-        upper = torch.quantile(score_float, upper_quantile)
-        scale = (upper - lower).clamp_min(1e-8)
-        return ((score_float - lower) / scale).clamp(0, 1)
-
     def _append_manifold_features(self, storage, frequency_features, band_names):
         missing = [name for name in band_names if name not in frequency_features]
         if missing:
@@ -266,8 +266,8 @@ class MuSc():
 
         for band_name in band_names:
             band_features = frequency_features[band_name]
-            for selected_position, layer_idx in enumerate(self.manifold_layers):
-                layer_feature = band_features[:, :, selected_position, :]
+            for layer_idx in self.manifold_layers:
+                layer_feature = band_features[:, :, layer_idx, :]
                 source_grid_size = int(math.sqrt(layer_feature.shape[1]))
                 target_grid_size = min(
                     self.manifold_grid_size, source_grid_size
@@ -286,67 +286,24 @@ class MuSc():
                     layer_feature.detach().cpu()
                 )
 
-    def _compute_manifold_score(self, storage, band_names, target_patch_count):
-        """Compute cross-frequency neighbor disagreement for every image patch."""
-        reference_band = band_names[0]
-        detail_bands = band_names[1:]
-        layer_scores = []
-
-        for layer_idx in self.manifold_layers:
-            layer_key = str(layer_idx)
-            print(f"layer-{layer_idx} manifold KNN: {reference_band}")
-            reference_features = torch.cat(
-                storage[reference_band][layer_key], dim=0
-            ).to(self.device)
-            reference_features = F.normalize(reference_features, dim=-1, eps=1e-6)
-            reference_indices = KNN_cosine_chunked(
-                reference_features,
-                self.device,
-                k=self.manifold_k,
-                reference_chunk_size=self.manifold_ref_chunk_size,
-                desc=f"KNN {reference_band} L{layer_idx}",
-            )
-            del reference_features
-
-            disagreement_sum = None
-            for band_name in detail_bands:
-                print(f"layer-{layer_idx} manifold KNN: {band_name}")
-                band_features = torch.cat(
-                    storage[band_name][layer_key], dim=0
-                ).to(self.device)
-                band_features = F.normalize(band_features, dim=-1, eps=1e-6)
-                band_indices = KNN_cosine_chunked(
-                    band_features,
-                    self.device,
-                    k=self.manifold_k,
-                    reference_chunk_size=self.manifold_ref_chunk_size,
-                    desc=f"KNN {band_name} L{layer_idx}",
-                )
-                disagreement = neighbor_disagreement(reference_indices, band_indices)
-                disagreement_sum = (
-                    disagreement
-                    if disagreement_sum is None
-                    else disagreement_sum + disagreement
-                )
-                del band_features, band_indices, disagreement
-
-            layer_scores.append((disagreement_sum / len(detail_bands)).cpu())
-            del reference_indices, disagreement_sum
-
-        score = torch.stack(layer_scores, dim=0).mean(dim=0).to(self.device)
-        if score.shape[1] != target_patch_count:
-            source_grid_size = int(math.sqrt(score.shape[1]))
-            target_grid_size = int(math.sqrt(target_patch_count))
-            score = F.interpolate(
-                score.reshape(score.shape[0], 1, source_grid_size, source_grid_size),
-                size=(target_grid_size, target_grid_size),
-                mode='bilinear',
-                align_corners=False,
-            ).flatten(1)
-        return score
-
     def make_category_data(self, category):
         print(category)
+
+        manifold_temperature = float(
+            self.manifold_temperature_by_category.get(
+                category, self.manifold_temperature
+            )
+        )
+        if manifold_temperature <= 0:
+            raise ValueError(
+                f"Manifold temperature for {category} must be positive."
+            )
+        if self.use_manifold:
+            print(
+                'Integrated soft manifold: temperature={}, lambda_m={}'.format(
+                    manifold_temperature, self.lambda_m
+                )
+            )
 
         # divide sub-datasets
         divide_num = self.divide_num
@@ -456,12 +413,42 @@ class MuSc():
                 print(f"Using WTConvLNAMDStatic with r={r}, wt={ablation_wt_type}, bandpass={ablation_use_details}(start={ablation_detail_start}, keep_ll={ablation_keep_ll})")
                 LNAMD_r = WTConvLNAMDStatic(device=self.device, feature_dim=feature_dim, feature_layer=self.features_list, r=r,
                                             wt_type=ablation_wt_type, padding_mode=ablation_padding, include_level0=ablation_level0,
-                                            use_details=ablation_use_details, detail_start_level=ablation_detail_start, keep_ll=ablation_keep_ll)
+                                            use_details=ablation_use_details, detail_start_level=ablation_detail_start,
+                                            keep_ll=ablation_keep_ll, component_level=self.manifold_level)
                 Z_layers = {}
+                manifold_enabled = (
+                    self.use_manifold and self.lambda_m != 0 and subset_num >= 2
+                )
+                manifold_band_names = [
+                    f'll{self.manifold_level}',
+                    f'lh{self.manifold_level}',
+                    f'hl{self.manifold_level}',
+                    f'hh{self.manifold_level}',
+                ]
+                manifold_features = None
+                if manifold_enabled:
+                    manifold_features = {
+                        band_name: {str(i): [] for i in self.manifold_layers}
+                        for band_name in manifold_band_names
+                    }
+                elif self.use_manifold:
+                    print('Skipping manifold scoring: at least two images are required.')
+
                 for im in range(len(patch_tokens_list)):  # 遍历所有batch的patch tokens(l,b,p,d)
                     patch_tokens = [p.to(self.device) for p in patch_tokens_list[im]]  # 提取局部特征patch tokens
                     with torch.no_grad(), torch.cuda.amp.autocast():
-                        features = LNAMD_r._embed(patch_tokens)
+                        if manifold_enabled:
+                            features, frequency_features = LNAMD_r._embed(
+                                patch_tokens, return_components=True
+                            )
+                            self._append_manifold_features(
+                                manifold_features,
+                                frequency_features,
+                                manifold_band_names,
+                            )
+                            del frequency_features
+                        else:
+                            features = LNAMD_r._embed(patch_tokens)
                         features /= features.norm(dim=-1, keepdim=True)
                         # 总结：Unfold将每个位置周围的r×r邻域提取出来，adaptive_avg_pool1d将每个邻域的特征聚合为固定维度的特征向量，然后用stack将不同深度层的特征组合在一起
                         for l in range(len(self.features_list)):  # 按层分离并存储特征
@@ -505,7 +492,25 @@ class MuSc():
                 for l in Z_layers.keys():
                     # different layers
                     Z = torch.cat(Z_layers[l], dim=0).to(self.device) # (N, L, C) 将所有批次的该层特征拼接
-                    print('layer-{} mutual scoring...'.format(l))
+                    integrated_frequency_features = None
+                    if manifold_enabled and int(l) in self.manifold_layers:
+                        integrated_frequency_features = {
+                            short_name: torch.cat(
+                                manifold_features[full_name][l], dim=0
+                            )
+                            for short_name, full_name in zip(
+                                ('ll', 'lh', 'hl', 'hh'),
+                                manifold_band_names,
+                            )
+                        }
+                    print(
+                        'layer-{} mutual scoring{}...'.format(
+                            l,
+                            ' + integrated manifold'
+                            if integrated_frequency_features is not None
+                            else '',
+                        )
+                    )
 
                     # Apply spot weighting conditionally
                     current_use_spot_weight = ablation_use_spot_weight
@@ -518,98 +523,31 @@ class MuSc():
                             current_use_spot_weight = False
 
                     anomaly_maps_msm = MSM(Z=Z, device=self.device, topmin_min=0, topmin_max=0.3,
-                                           gamma=ablation_gamma, use_spot_weight=current_use_spot_weight)  #调用MSM算法生成异常图（同一层互相计算）
+                                           gamma=ablation_gamma, use_spot_weight=current_use_spot_weight,
+                                           frequency_features=integrated_frequency_features,
+                                           manifold_temperature=manifold_temperature,
+                                           lambda_m=self.lambda_m,
+                                           manifold_normalize=self.manifold_normalize,
+                                           manifold_ref_chunk_size=self.manifold_ref_chunk_size)  #调用MSM算法生成异常图（同一层互相计算）
                     anomaly_maps_l = torch.cat((anomaly_maps_l, anomaly_maps_msm.unsqueeze(0).cpu()), dim=0)  # 存储不同层的MSM异常图结果
+                    if integrated_frequency_features is not None:
+                        del integrated_frequency_features
+                        for band_name in manifold_band_names:
+                            del manifold_features[band_name][l]
                     del Z, anomaly_maps_msm
                     torch.cuda.empty_cache()
                 anomaly_maps_l = torch.mean(anomaly_maps_l, 0)  # 将不同层的MSM异常图结果平均融合
                 anomaly_maps_r = torch.cat((anomaly_maps_r, anomaly_maps_l.unsqueeze(0)), dim=0)  # 存储不同r值的异常图
                 end_time = time.time()
                 print('MSM: {}ms per image'.format((end_time-start_time)*1000/subset_num))
+                del Z_layers, manifold_features, LNAMD_r
+                torch.cuda.empty_cache()
             anomaly_maps_iter = torch.mean(anomaly_maps_r, 0).to(self.device)  # 对不同r的异常图取平均
 
-            # The original MuSc path ends here. Release its last feature cache
-            # before allocating any tensors for the optional manifold branch.
-            del Z_layers, features, patch_tokens, LNAMD_r
+            # Every selected layer at every r has already returned one joint
+            # MSM + manifold score. There is no second anomaly-map branch.
+            del features, patch_tokens
             torch.cuda.empty_cache()
-
-            if self.use_manifold and subset_num < 2:
-                print('Skipping manifold scoring: at least two images are required.')
-            elif self.use_manifold:
-                manifold_band_names = [
-                    f'll{self.manifold_level}',
-                    f'lh{self.manifold_level}',
-                    f'hl{self.manifold_level}',
-                    f'hh{self.manifold_level}',
-                ]
-                manifold_features = {
-                    band_name: {str(i): [] for i in self.manifold_layers}
-                    for band_name in manifold_band_names
-                }
-                selected_feature_layers = [
-                    self.features_list[i] for i in self.manifold_layers
-                ]
-                manifold_extractor = WTConvLNAMDStatic(
-                    device=self.device,
-                    feature_dim=feature_dim,
-                    feature_layer=selected_feature_layers,
-                    wt_levels=self.manifold_level + 1,
-                    wt_type=ablation_wt_type,
-                    padding_mode=ablation_padding,
-                    include_level0=ablation_level0,
-                    use_details=True,
-                    detail_start_level=self.manifold_level,
-                    keep_ll=ablation_keep_ll,
-                )
-                print(
-                    'Extracting manifold bands after original MuSc '
-                    f'(layers={self.manifold_layers}, grid={self.manifold_grid_size})'
-                )
-                for patch_tokens_batch in patch_tokens_list:
-                    selected_patch_tokens = [
-                        patch_tokens_batch[i].to(self.device)
-                        for i in self.manifold_layers
-                    ]
-                    with torch.no_grad(), torch.cuda.amp.autocast():
-                        _, frequency_features = manifold_extractor._embed(
-                            selected_patch_tokens, return_components=True
-                        )
-                        self._append_manifold_features(
-                            manifold_features,
-                            frequency_features,
-                            manifold_band_names,
-                        )
-                    del selected_patch_tokens, frequency_features
-                del manifold_extractor
-                torch.cuda.empty_cache()
-
-                if self.device.type == 'cuda':
-                    torch.cuda.synchronize(self.device)
-                manifold_start_time = time.time()
-                manifold_score = self._compute_manifold_score(
-                    manifold_features,
-                    manifold_band_names,
-                    target_patch_count=anomaly_maps_iter.shape[1],
-                ).to(anomaly_maps_iter.dtype)
-                if self.device.type == 'cuda':
-                    torch.cuda.synchronize(self.device)
-                if self.manifold_normalize:
-                    anomaly_maps_iter = self._robust_normalize_score(
-                        anomaly_maps_iter
-                    ).to(anomaly_maps_iter.dtype)
-                    manifold_score = self._robust_normalize_score(
-                        manifold_score
-                    ).to(anomaly_maps_iter.dtype)
-                anomaly_maps_iter = anomaly_maps_iter + self.lambda_m * manifold_score
-                print(
-                    'Manifold: {}ms per image (k={}, lambda_m={})'.format(
-                        (time.time() - manifold_start_time) * 1000 / subset_num,
-                        self.manifold_k,
-                        self.lambda_m,
-                    )
-                )
-                del manifold_score, manifold_features
-                torch.cuda.empty_cache()
 
             # anomaly_maps_iter current shape: (B, L) where L is flattened H*W
             B, L = anomaly_maps_iter.shape

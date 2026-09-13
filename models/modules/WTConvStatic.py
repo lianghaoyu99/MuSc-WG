@@ -29,7 +29,8 @@ class WTConv2dStatic(nn.Module):
         include_level0 (bool): Whether to include the original features (Level 0) in the aggregation.
     """
     def __init__(self, in_channels, wt_levels=1, wt_type='db2', padding_mode='reflect',
-                 include_level0=False, use_details=False, detail_start_level=1, keep_ll=True):
+                 include_level0=False, use_details=False, detail_start_level=1,
+                 keep_ll=True, component_level=None):
         super(WTConv2dStatic, self).__init__()
         if wavelet is None:
             raise ImportError("wtconv.util.wavelet not found. Please install PyWavelets (pip install PyWavelets).")
@@ -40,6 +41,7 @@ class WTConv2dStatic(nn.Module):
         self.use_details = use_details
         self.detail_start_level = detail_start_level
         self.keep_ll = keep_ll
+        self.component_level = component_level
 
         # 获取基础小波滤波器
         wt_filter, iwt_filter = wavelet.create_2d_wavelet_filter(wt_type, in_channels, in_channels, torch.float)
@@ -66,7 +68,17 @@ class WTConv2dStatic(nn.Module):
 
         k_h, k_w = ll_filter.shape[2], ll_filter.shape[3]
 
-        for i in range(self.wt_levels):
+        # A caller may request a deeper frequency level for manifold scoring.
+        # Those extra levels are decomposed only for inspection and are never
+        # added to the original fused feature, so return_components=False and
+        # lambda_m=0 retain the original MuSc result exactly.
+        decomposition_levels = self.wt_levels
+        if return_components and self.component_level is not None:
+            decomposition_levels = max(
+                decomposition_levels, self.component_level + 1
+            )
+
+        for i in range(decomposition_levels):
             # 随层数增加空洞率 (Dilation)
             dilation = 2**i
 
@@ -90,29 +102,39 @@ class WTConv2dStatic(nn.Module):
 
             # 2. Convolution (Approximation / Low-Pass)
             next_ll = F.conv2d(x_padded, ll_filter, groups=C, padding=0, dilation=dilation)
-            if return_components:
+            capture_this_level = return_components and (
+                self.component_level is None or i == self.component_level
+            )
+            if capture_this_level:
                 frequency_components[f'll{i}'] = next_ll
 
-            if self.keep_ll:
+            if self.keep_ll and i < self.wt_levels:
                 aggregated_components.append(next_ll)
 
             # 3. Convolution (Details / High-Pass)
-            if self.use_details and i >= self.detail_start_level:
+            need_details = self.use_details and (
+                i >= self.detail_start_level
+                or (return_components and i == self.component_level)
+            )
+            if need_details:
                 # LH (Horizontal Detail)
                 curr_lh = F.conv2d(x_padded, lh_filter, groups=C, padding=0, dilation=dilation)
                 # HL (Vertical Detail)
                 curr_hl = F.conv2d(x_padded, hl_filter, groups=C, padding=0, dilation=dilation)
                 # HH (Diagonal Detail)
                 curr_hh = F.conv2d(x_padded, hh_filter, groups=C, padding=0, dilation=dilation)
-                if return_components:
+                if capture_this_level:
                     frequency_components[f'lh{i}'] = curr_lh
                     frequency_components[f'hl{i}'] = curr_hl
                     frequency_components[f'hh{i}'] = curr_hh
 
-                # Add details to aggregation
-                aggregated_components.append(curr_lh)
-                aggregated_components.append(curr_hl)
-                aggregated_components.append(curr_hh)
+                # Only levels belonging to the original r-specific transform
+                # participate in fused_feature. Deeper component-only levels
+                # are used exclusively by the integrated manifold MSM.
+                if i < self.wt_levels and i >= self.detail_start_level:
+                    aggregated_components.append(curr_lh)
+                    aggregated_components.append(curr_hl)
+                    aggregated_components.append(curr_hh)
 
             # Update current approximation for next level
             curr_x = next_ll
@@ -134,7 +156,8 @@ class WTConvLNAMDStatic(nn.Module):
     """
     def __init__(self, device, feature_dim=1024, feature_layer=[1,2,3,4], r=3, wt_levels=None,
                  wt_type='db2', padding_mode='reflect', include_level0=False,
-                 use_details=False, detail_start_level=1, keep_ll=True):
+                 use_details=False, detail_start_level=1, keep_ll=True,
+                 component_level=None):
         super(WTConvLNAMDStatic, self).__init__()
         self.device = device
         self.feature_layer = feature_layer
@@ -149,7 +172,8 @@ class WTConvLNAMDStatic(nn.Module):
         self.wt_convs = nn.ModuleList([
             WTConv2dStatic(feature_dim, wt_levels=wt_levels, wt_type=wt_type,
                            padding_mode=padding_mode, include_level0=include_level0,
-                           use_details=use_details, detail_start_level=detail_start_level, keep_ll=keep_ll)
+                           use_details=use_details, detail_start_level=detail_start_level,
+                           keep_ll=keep_ll, component_level=component_level)
             for _ in feature_layer
         ])
         self.to(device)

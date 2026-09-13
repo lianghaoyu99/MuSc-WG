@@ -1,4 +1,7 @@
+import math
+
 import torch
+import torch.nn.functional as F
 from tqdm import tqdm
 
 """
@@ -56,114 +59,79 @@ def compute_scores_fast(Z, i, device, topmin_min=0, topmin_max=0.3, gamma=1.0, u
     return score
 
 
-def _resolve_neighbor_count(k, reference_count):
-    """Convert an absolute/fractional K to a valid reference-image count."""
-    if isinstance(k, float) and k < 1:
-        k = int(reference_count * k)
-    k = int(k)
-    if k < 1:
-        raise ValueError(f"k must select at least one neighbor, got {k}.")
-    return min(k, reference_count)
+def soft_reference_distribution(
+    Z,
+    device,
+    temperature=0.5,
+    reference_chunk_size=2,
+):
+    """Return a soft preference over every other reference image.
 
+    For each query patch, the closest patch distance is retained separately
+    for every reference image, matching the patch-to-image distance used by
+    MSM. The resulting distances are standardized across reference images
+    before temperature-scaled softmax so that one temperature is meaningful
+    across layers, radii and categories.
 
-def KNN(Z, device, k=10, desc=None):
-    """Return MuSc-style nearest reference-image IDs for every patch.
-
-    Each query patch is first matched to the closest patch in every other
-    image. The K closest reference images are then retained. The result has
-    shape (image_num, patch_num, K).
-    """
-    image_num, patch_num, channels = Z.shape
-    if image_num < 2:
-        raise ValueError("KNN requires at least two images.")
-
-    neighbor_count = _resolve_neighbor_count(k, image_num - 1)
-    all_image_ids = torch.arange(image_num, device=device)
-    neighbor_indices = []
-    iterator = range(image_num)
-    if desc is not None:
-        iterator = tqdm(iterator, desc=desc)
-
-    for i in iterator:
-        Z_ref = torch.cat((Z[:i], Z[i + 1:]), dim=0)
-        patch2image = torch.cdist(
-            Z[i:i + 1], Z_ref.reshape(-1, channels)
-        ).reshape(patch_num, image_num - 1, patch_num).amin(dim=-1)
-        local_indices = torch.topk(
-            patch2image.float(), neighbor_count, largest=False, sorted=True
-        ).indices
-        reference_ids = torch.cat((all_image_ids[:i], all_image_ids[i + 1:]))
-        neighbor_indices.append(reference_ids[local_indices])
-
-    return torch.stack(neighbor_indices, dim=0)
-
-
-def KNN_cosine_chunked(Z, device, k=10, reference_chunk_size=2, desc=None):
-    """Memory-efficient MuSc-style KNN for L2-normalized features.
-
-    Cosine similarity and Euclidean distance produce identical rankings for
-    L2-normalized vectors. Reference images are processed in small blocks, so
-    the full (patch_num, (image_num - 1) * patch_num) matrix is never created.
+    Returns:
+        Tensor shaped ``(image_num, patch_num, image_num - 1)``. The last
+        dimension follows ascending global image ID with the query image
+        omitted, and therefore aligns across frequency bands.
     """
     image_num, patch_num, _ = Z.shape
     if image_num < 2:
-        raise ValueError("KNN requires at least two images.")
+        raise ValueError("Soft reference distribution requires at least two images.")
+    if temperature <= 0:
+        raise ValueError(f"temperature must be positive, got {temperature}.")
     if reference_chunk_size < 1:
         raise ValueError("reference_chunk_size must be at least 1.")
 
-    neighbor_count = _resolve_neighbor_count(k, image_num - 1)
     all_image_ids = torch.arange(image_num, device=device)
-    neighbor_indices = []
-    iterator = range(image_num)
-    if desc is not None:
-        iterator = tqdm(iterator, desc=desc)
+    distributions = []
 
-    for i in iterator:
+    for i in range(image_num):
         query = Z[i]
         reference_ids = torch.cat((all_image_ids[:i], all_image_ids[i + 1:]))
-        best_scores = None
-        best_ids = None
+        distance_chunks = []
 
         for id_chunk in reference_ids.split(reference_chunk_size):
             references = Z[id_chunk]
-            # (ref_images, ref_patches, query_patches) ->
-            # best reference patch per image and query patch.
-            similarities = torch.matmul(
+            # Features are L2-normalized by the caller. Maximizing cosine
+            # similarity over reference patches is exactly equivalent to
+            # minimizing Euclidean distance over those patches.
+            best_similarity = torch.matmul(
                 references, query.transpose(0, 1)
-            ).amax(dim=1).transpose(0, 1)
-            candidate_ids = id_chunk.unsqueeze(0).expand(patch_num, -1)
-
-            if best_scores is not None:
-                similarities = torch.cat((best_scores, similarities), dim=1)
-                candidate_ids = torch.cat((best_ids, candidate_ids), dim=1)
-
-            keep_count = min(neighbor_count, similarities.shape[1])
-            best_scores, positions = torch.topk(
-                similarities, keep_count, dim=1, largest=True, sorted=True
+            ).amax(dim=1).transpose(0, 1).float()
+            distances = torch.sqrt(
+                (2.0 - 2.0 * best_similarity).clamp_min(0.0)
             )
-            best_ids = torch.gather(candidate_ids, dim=1, index=positions)
+            distance_chunks.append(distances)
 
-        neighbor_indices.append(best_ids)
-
-    return torch.stack(neighbor_indices, dim=0)
-
-
-def neighbor_disagreement(reference_indices, band_indices):
-    """Compute 1 - |intersection| / K for two neighbor-index tensors."""
-    if reference_indices.shape != band_indices.shape:
-        raise ValueError(
-            "Neighbor index tensors must have identical shapes, got "
-            f"{reference_indices.shape} and {band_indices.shape}."
+        patch2image = torch.cat(distance_chunks, dim=1)
+        # Per-query-patch scale calibration. Softmax is shift-invariant, but
+        # centering makes the calibrated distances easier to inspect.
+        center = patch2image.mean(dim=-1, keepdim=True)
+        scale = patch2image.std(
+            dim=-1, unbiased=False, keepdim=True
+        ).clamp_min(1e-6)
+        calibrated = (patch2image - center) / scale
+        distributions.append(
+            torch.softmax(-calibrated / float(temperature), dim=-1)
         )
 
-    reference_sorted = torch.sort(reference_indices, dim=-1).values.contiguous()
-    positions = torch.searchsorted(reference_sorted, band_indices.contiguous())
-    valid = positions < reference_sorted.shape[-1]
-    safe_positions = positions.clamp_max(reference_sorted.shape[-1] - 1)
-    matched = valid & (
-        torch.gather(reference_sorted, dim=-1, index=safe_positions) == band_indices
+    return torch.stack(distributions, dim=0)
+
+
+def jensen_shannon_divergence(p, q, eps=1e-12):
+    """Jensen-Shannon divergence normalized to the interval [0, 1]."""
+    p = p.float().clamp_min(eps)
+    q = q.float().clamp_min(eps)
+    midpoint = 0.5 * (p + q)
+    divergence = 0.5 * (
+        (p * (p.log() - midpoint.log())).sum(dim=-1)
+        + (q * (q.log() - midpoint.log())).sum(dim=-1)
     )
-    return 1.0 - matched.float().mean(dim=-1)
+    return (divergence / math.log(2.0)).clamp(0.0, 1.0)
 
 def compute_scores_slow(Z, i, device, topmin_min=0, topmin_max=0.3):
     # space small but speed slow
@@ -186,13 +154,142 @@ def compute_scores_slow(Z, i, device, topmin_min=0, topmin_max=0.3):
     patch2image = vals.clone()
     return torch.mean(patch2image, dim=1)
 
-def MSM(Z, device, topmin_min=0, topmin_max=0.3, gamma=1.0, use_spot_weight=False):
+def _resize_patch_scores(scores, target_patch_count):
+    """Resize an (N, P) patch score without assuming a fixed backbone grid."""
+    if scores.shape[1] == target_patch_count:
+        return scores
+
+    source_size = int(math.sqrt(scores.shape[1]))
+    target_size = int(math.sqrt(target_patch_count))
+    if source_size * source_size != scores.shape[1]:
+        raise ValueError(f"Source patch count {scores.shape[1]} is not square.")
+    if target_size * target_size != target_patch_count:
+        raise ValueError(f"Target patch count {target_patch_count} is not square.")
+
+    return F.interpolate(
+        scores.float().reshape(scores.shape[0], 1, source_size, source_size),
+        size=(target_size, target_size),
+        mode='bilinear',
+        align_corners=False,
+    ).flatten(1)
+
+
+def _integrated_manifold_score(
+    frequency_features,
+    device,
+    temperature,
+    reference_chunk_size,
+):
+    """Compute LL/detail soft reference-distribution disagreement in MSM.
+
+    ``frequency_features`` contains one layer at one aggregation radius. Each
+    tensor is kept on CPU by the caller and transferred band-by-band so the
+    four frequency tensors do not have to reside on the GPU simultaneously.
+    """
+    required_bands = ('ll', 'lh', 'hl', 'hh')
+    missing = [name for name in required_bands if name not in frequency_features]
+    if missing:
+        raise ValueError(
+            "Missing frequency features for integrated manifold MSM: "
+            + ", ".join(missing)
+        )
+
+    reference_distribution = None
+    disagreement_sum = None
+    expected_shape = None
+
+    for band_name in required_bands:
+        band_features = frequency_features[band_name].to(
+            device, non_blocking=True
+        )
+        if expected_shape is None:
+            expected_shape = band_features.shape
+        elif band_features.shape != expected_shape:
+            raise ValueError(
+                "All manifold bands must have the same shape, got "
+                f"{expected_shape} and {band_features.shape}."
+            )
+
+        band_features = F.normalize(band_features, dim=-1, eps=1e-6)
+        band_distribution = soft_reference_distribution(
+            band_features,
+            device,
+            temperature=temperature,
+            reference_chunk_size=reference_chunk_size,
+        )
+        del band_features
+
+        if band_name == 'll':
+            reference_distribution = band_distribution
+            continue
+
+        disagreement = jensen_shannon_divergence(
+            reference_distribution, band_distribution
+        )
+        disagreement_sum = (
+            disagreement
+            if disagreement_sum is None
+            else disagreement_sum + disagreement
+        )
+        del band_distribution, disagreement
+
+    score = disagreement_sum / 3.0
+    del reference_distribution, disagreement_sum
+    return score
+
+
+def MSM(
+    Z,
+    device,
+    topmin_min=0,
+    topmin_max=0.3,
+    gamma=1.0,
+    use_spot_weight=False,
+    frequency_features=None,
+    manifold_temperature=0.5,
+    lambda_m=0.1,
+    manifold_normalize=True,
+    manifold_ref_chunk_size=2,
+):
+    """Mutual scoring with optional in-module frequency-manifold regularization.
+
+    When frequency features are supplied, this function still returns a
+    single score map. The manifold disagreement is scaled to the robust range
+    of the original MSM distances before it is added. Consequently,
+    ``lambda_m=0`` exactly recovers the original MSM result.
+    """
     anomaly_scores_matrix = torch.tensor([]).double().to(device)
     for i in tqdm(range(Z.shape[0])):  # 遍历N个样本
     # for i in range(Z.shape[0]):
         anomaly_scores_i = compute_scores_fast(Z, i, device, topmin_min, topmin_max, gamma, use_spot_weight).unsqueeze(0)  # 计算样本i的异常得分（欧氏距离矩阵）
         anomaly_scores_matrix = torch.cat((anomaly_scores_matrix, anomaly_scores_i.double()), dim=0)    # (N, B)
-    return anomaly_scores_matrix
+    if frequency_features is None or lambda_m == 0:
+        return anomaly_scores_matrix
+
+    manifold_score = _integrated_manifold_score(
+        frequency_features,
+        device=device,
+        temperature=manifold_temperature,
+        reference_chunk_size=manifold_ref_chunk_size,
+    )
+    manifold_score = _resize_patch_scores(
+        manifold_score, anomaly_scores_matrix.shape[1]
+    ).to(anomaly_scores_matrix.dtype)
+
+    if manifold_normalize:
+        base_float = anomaly_scores_matrix.float()
+        lower = torch.quantile(base_float, 0.01)
+        upper = torch.quantile(base_float, 0.99)
+        manifold_scale = (upper - lower).clamp_min(1e-8)
+    else:
+        manifold_scale = 1.0
+
+    joint_score = (
+        anomaly_scores_matrix
+        + float(lambda_m) * manifold_scale * manifold_score
+    )
+    del manifold_score
+    return joint_score
 
 if __name__ == "__main__":
     device = 'cuda:0'

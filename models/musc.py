@@ -64,19 +64,39 @@ class MuSc():
             'manifold_temperature_by_category', {}
         ) or {}
         self.lambda_m = float(cfg['testing'].get('lambda_m', 0.1))
+        self.manifold_lambda_by_category = cfg['testing'].get(
+            'manifold_lambda_by_category', {}
+        ) or {}
+        self.manifold_parameters_by_dataset = cfg['testing'].get(
+            'manifold_parameters_by_dataset', {}
+        ) or {}
         self.manifold_level = int(cfg['testing'].get('manifold_level', 1))
+        self.manifold_fusion = cfg['testing'].get(
+            'manifold_fusion', 'post_musc'
+        )
         self.manifold_normalize = cfg['testing'].get('manifold_normalize', True)
         self.manifold_grid_size = int(cfg['testing'].get('manifold_grid_size', 19))
         self.manifold_ref_chunk_size = int(
             cfg['testing'].get('manifold_ref_chunk_size', 2)
         )
         self.manifold_layers_config = cfg['testing'].get('manifold_layers', [-1])
+        self.manifold_r_list_config = cfg['testing'].get('manifold_r_list')
         if self.manifold_level < 1:
             raise ValueError("manifold_level must be at least 1 so LL/LH/HL/HH all exist.")
+        if self.manifold_fusion != 'post_musc':
+            raise ValueError(
+                "manifold_fusion currently supports only 'post_musc'."
+            )
         if self.manifold_temperature <= 0:
             raise ValueError("manifold_temperature must be positive.")
         if not isinstance(self.manifold_temperature_by_category, dict):
             raise ValueError("manifold_temperature_by_category must be a mapping.")
+        if not isinstance(self.manifold_lambda_by_category, dict):
+            raise ValueError("manifold_lambda_by_category must be a mapping.")
+        if not isinstance(self.manifold_parameters_by_dataset, dict):
+            raise ValueError("manifold_parameters_by_dataset must be a mapping.")
+        if self.lambda_m < 0:
+            raise ValueError("lambda_m must be non-negative.")
         if self.manifold_grid_size < 1:
             raise ValueError("manifold_grid_size must be at least 1.")
         # the categories to be tested
@@ -115,6 +135,20 @@ class MuSc():
                 self.manifold_layers.append(resolved_index)
         self.divide_num = cfg['datasets']['divide_num']
         self.r_list = cfg['models']['r_list']
+        if self.manifold_r_list_config is None:
+            self.manifold_r_list = list(self.r_list)
+        else:
+            self.manifold_r_list = [
+                int(radius) for radius in self.manifold_r_list_config
+            ]
+        invalid_manifold_radii = sorted(
+            set(self.manifold_r_list) - set(self.r_list)
+        )
+        if invalid_manifold_radii:
+            raise ValueError(
+                "manifold_r_list contains radii not present in models.r_list: "
+                + ", ".join(map(str, invalid_manifold_radii))
+            )
         self.output_dir = os.path.join(cfg['testing']['output_dir'], self.dataset, self.model_name, 'imagesize{}'.format(self.image_size))
         os.makedirs(self.output_dir, exist_ok=True)
         self.load_backbone()
@@ -286,22 +320,96 @@ class MuSc():
                     layer_feature.detach().cpu()
                 )
 
-    def make_category_data(self, category):
-        print(category)
+    def _resolve_manifold_parameters(self, category):
+        """Resolve global, legacy category, dataset and dataset/category values.
 
-        manifold_temperature = float(
+        Precedence from lowest to highest is:
+        global defaults -> legacy flat category maps -> dataset defaults ->
+        category values nested under the active dataset.
+        """
+        temperature = float(
             self.manifold_temperature_by_category.get(
                 category, self.manifold_temperature
             )
         )
-        if manifold_temperature <= 0:
+        lambda_m = float(
+            self.manifold_lambda_by_category.get(category, self.lambda_m)
+        )
+
+        dataset_parameters = self.manifold_parameters_by_dataset.get(
+            self.dataset, {}
+        )
+        if dataset_parameters is None:
+            dataset_parameters = {}
+        if not isinstance(dataset_parameters, dict):
             raise ValueError(
-                f"Manifold temperature for {category} must be positive."
+                f"Manifold parameters for dataset {self.dataset} must be a mapping."
             )
+
+        # ``tau`` is accepted as an alias for the more explicit
+        # ``temperature`` key used elsewhere in the implementation.
+        temperature = float(
+            dataset_parameters.get(
+                'temperature', dataset_parameters.get('tau', temperature)
+            )
+        )
+        lambda_m = float(dataset_parameters.get('lambda_m', lambda_m))
+
+        category_parameters = dataset_parameters.get('categories', {}) or {}
+        if not isinstance(category_parameters, dict):
+            raise ValueError(
+                f"categories for dataset {self.dataset} must be a mapping."
+            )
+        category_parameters = category_parameters.get(category, {})
+        if category_parameters is None:
+            category_parameters = {}
+        # A scalar remains a convenient shorthand for a temperature-only
+        # category override; a mapping can override both temperature and lambda.
+        if isinstance(category_parameters, (int, float)):
+            temperature = float(category_parameters)
+        elif isinstance(category_parameters, dict):
+            temperature = float(
+                category_parameters.get(
+                    'temperature', category_parameters.get('tau', temperature)
+                )
+            )
+            lambda_m = float(category_parameters.get('lambda_m', lambda_m))
+        else:
+            raise ValueError(
+                f"Manifold parameters for {self.dataset}/{category} must be "
+                "a number or mapping."
+            )
+
+        if temperature <= 0:
+            raise ValueError(
+                f"Manifold temperature for {self.dataset}/{category} must be positive."
+            )
+        if lambda_m < 0:
+            raise ValueError(
+                f"Manifold lambda for {self.dataset}/{category} must be non-negative."
+            )
+        return temperature, lambda_m
+
+    def make_category_data(
+        self,
+        category,
+        return_predictions=False,
+        compute_metrics_output=True,
+    ):
+        print(category)
+
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            torch.cuda.reset_peak_memory_stats(self.device)
+            torch.cuda.synchronize(self.device)
+
+        manifold_temperature, manifold_lambda = (
+            self._resolve_manifold_parameters(category)
+        )
         if self.use_manifold:
             print(
                 'Integrated soft manifold: temperature={}, lambda_m={}'.format(
-                    manifold_temperature, self.lambda_m
+                    manifold_temperature, manifold_lambda
                 )
             )
 
@@ -318,6 +426,7 @@ class MuSc():
 
         start_time_all = time.time()
         dataset_num = 0
+        msm_ms_by_radius = {}
         for divide_iter in range(divide_num):  # 按照划分数据子集的数量依次处理每个子集
             test_dataset = self.load_datasets(category, divide_num=divide_num, divide_iter=divide_iter)  # 选择要加载的数据集路径
             test_dataloader = torch.utils.data.DataLoader(
@@ -332,6 +441,8 @@ class MuSc():
             patch_tokens_list = []
             subset_num = len(test_dataset)
             dataset_num += subset_num
+            if torch.cuda.is_available():
+                torch.cuda.synchronize(self.device)
             start_time = time.time()
             for image_info in tqdm(test_dataloader):  # 遍历抽取每个batch图像的特征
             # for image_info in test_dataloader:
@@ -371,13 +482,18 @@ class MuSc():
                     tsne_labels.extend(current_batch_labels)
 
                 patch_tokens_list.append(patch_tokens)  # (B, L+1, C)  处理不同batch的patch_tokens，patch_tokens_list(B, l, b, p, d)
+            if torch.cuda.is_available():
+                torch.cuda.synchronize(self.device)
             end_time = time.time()
             print('extract time: {}ms per image'.format((end_time-start_time)*1000/subset_num))
 
             # LNAMD 局部邻域聚合生成多尺度特征
             feature_dim = patch_tokens_list[0][0].shape[-1]  # 提取特征维度
             anomaly_maps_r = torch.tensor([]).double()  # 创建一个空的double类型张量，用于存储不同聚合半径r计算得到的异常图
+            deferred_manifold_scores = []
             for r in self.r_list:
+                if torch.cuda.is_available():
+                    torch.cuda.synchronize(self.device)
                 start_time = time.time()
                 print('aggregation degree: {}'.format(r))
                 # LNAMD_r = LNAMD(device=self.device, r=r, feature_dim=feature_dim, feature_layer=self.features_list)
@@ -417,7 +533,10 @@ class MuSc():
                                             keep_ll=ablation_keep_ll, component_level=self.manifold_level)
                 Z_layers = {}
                 manifold_enabled = (
-                    self.use_manifold and self.lambda_m != 0 and subset_num >= 2
+                    self.use_manifold
+                    and manifold_lambda != 0
+                    and r in self.manifold_r_list
+                    and subset_num >= 2
                 )
                 manifold_band_names = [
                     f'll{self.manifold_level}',
@@ -431,7 +550,12 @@ class MuSc():
                         band_name: {str(i): [] for i in self.manifold_layers}
                         for band_name in manifold_band_names
                     }
-                elif self.use_manifold:
+                elif (
+                    self.use_manifold
+                    and manifold_lambda != 0
+                    and r in self.manifold_r_list
+                    and subset_num < 2
+                ):
                     print('Skipping manifold scoring: at least two images are required.')
 
                 for im in range(len(patch_tokens_list)):  # 遍历所有batch的patch tokens(l,b,p,d)
@@ -483,11 +607,15 @@ class MuSc():
                         current_batch_labels = gt_list[start_idx:end_idx]
                         tsne_labels.extend(current_batch_labels)
 
+                if torch.cuda.is_available():
+                    torch.cuda.synchronize(self.device)
                 end_time = time.time()
                 print('LNAMD-{}: {}ms per image'.format(r, (end_time-start_time)*1000/subset_num))
 
                 # MSM 互评分模块，用于计算每个位置与其他位置的相似度来生成异常图。
                 anomaly_maps_l = torch.tensor([]).double()
+                if torch.cuda.is_available():
+                    torch.cuda.synchronize(self.device)
                 start_time = time.time()
                 for l in Z_layers.keys():
                     # different layers
@@ -506,7 +634,7 @@ class MuSc():
                     print(
                         'layer-{} mutual scoring{}...'.format(
                             l,
-                            ' + integrated manifold'
+                            ' + deferred manifold calibration'
                             if integrated_frequency_features is not None
                             else '',
                         )
@@ -522,13 +650,21 @@ class MuSc():
                         if not (is_wtconv and is_target_category):
                             current_use_spot_weight = False
 
-                    anomaly_maps_msm = MSM(Z=Z, device=self.device, topmin_min=0, topmin_max=0.3,
-                                           gamma=ablation_gamma, use_spot_weight=current_use_spot_weight,
-                                           frequency_features=integrated_frequency_features,
-                                           manifold_temperature=manifold_temperature,
-                                           lambda_m=self.lambda_m,
-                                           manifold_normalize=self.manifold_normalize,
-                                           manifold_ref_chunk_size=self.manifold_ref_chunk_size)  #调用MSM算法生成异常图（同一层互相计算）
+                    msm_result = MSM(Z=Z, device=self.device, topmin_min=0, topmin_max=0.3,
+                                     gamma=ablation_gamma, use_spot_weight=current_use_spot_weight,
+                                     frequency_features=integrated_frequency_features,
+                                     manifold_temperature=manifold_temperature,
+                                     lambda_m=manifold_lambda,
+                                     manifold_normalize=self.manifold_normalize,
+                                     manifold_ref_chunk_size=self.manifold_ref_chunk_size,
+                                     return_manifold_score=(integrated_frequency_features is not None))
+                    if integrated_frequency_features is not None:
+                        anomaly_maps_msm, manifold_score = msm_result
+                        deferred_manifold_scores.append(manifold_score.cpu())
+                        del manifold_score
+                    else:
+                        anomaly_maps_msm = msm_result
+                    del msm_result
                     anomaly_maps_l = torch.cat((anomaly_maps_l, anomaly_maps_msm.unsqueeze(0).cpu()), dim=0)  # 存储不同层的MSM异常图结果
                     if integrated_frequency_features is not None:
                         del integrated_frequency_features
@@ -538,14 +674,45 @@ class MuSc():
                     torch.cuda.empty_cache()
                 anomaly_maps_l = torch.mean(anomaly_maps_l, 0)  # 将不同层的MSM异常图结果平均融合
                 anomaly_maps_r = torch.cat((anomaly_maps_r, anomaly_maps_l.unsqueeze(0)), dim=0)  # 存储不同r值的异常图
+                if torch.cuda.is_available():
+                    torch.cuda.synchronize(self.device)
                 end_time = time.time()
-                print('MSM: {}ms per image'.format((end_time-start_time)*1000/subset_num))
+                msm_ms = (end_time-start_time)*1000/subset_num
+                msm_ms_by_radius[r] = msm_ms_by_radius.get(r, 0.0) + msm_ms
+                print('MSM: {}ms per image'.format(msm_ms))
                 del Z_layers, manifold_features, LNAMD_r
                 torch.cuda.empty_cache()
             anomaly_maps_iter = torch.mean(anomaly_maps_r, 0).to(self.device)  # 对不同r的异常图取平均
 
-            # Every selected layer at every r has already returned one joint
-            # MSM + manifold score. There is no second anomaly-map branch.
+            # Preserve the original MuSc path: average all 4 ViT layers and
+            # all 3 radii before calibrating and adding Mani. This prevents a
+            # single selected Mani score from being divided by the 12-way
+            # base-score average.
+            if deferred_manifold_scores:
+                manifold_score = torch.stack(
+                    deferred_manifold_scores, dim=0
+                ).mean(dim=0).to(
+                    device=self.device,
+                    dtype=anomaly_maps_iter.dtype,
+                )
+                if self.manifold_normalize:
+                    base_float = anomaly_maps_iter.float()
+                    lower = torch.quantile(base_float, 0.01)
+                    upper = torch.quantile(base_float, 0.99)
+                    manifold_scale = (upper - lower).clamp_min(1e-8)
+                    del base_float, lower, upper
+                else:
+                    manifold_scale = 1.0
+                anomaly_maps_iter = (
+                    anomaly_maps_iter
+                    + float(manifold_lambda) * manifold_scale * manifold_score
+                )
+                print(
+                    'Post-MuSc manifold fusion: {} score(s), lambda_m={}'.format(
+                        len(deferred_manifold_scores), manifold_lambda
+                    )
+                )
+                del manifold_score, manifold_scale, deferred_manifold_scores
             del features, patch_tokens
             torch.cuda.empty_cache()
 
@@ -582,8 +749,21 @@ class MuSc():
         # cls_save_path = os.path.join('./image_features/{}_{}.dat'.format(dataset, category))
         # with open(cls_save_path, 'wb') as f:
         #     pickle.dump([np.array(class_tokens)], f)
+        if torch.cuda.is_available():
+            torch.cuda.synchronize(self.device)
         end_time_all = time.time()
-        print('MuSc: {}ms per image'.format((end_time_all-start_time_all)*1000/dataset_num))
+        total_ms_per_image = (end_time_all-start_time_all)*1000/dataset_num
+        self.last_runtime_profile = {
+            'msm_ms_by_radius': {
+                radius: value / divide_num
+                for radius, value in msm_ms_by_radius.items()
+            },
+            'total_ms_per_image': total_ms_per_image,
+            'manifold_r_list': list(self.manifold_r_list),
+            'manifold_layers': list(self.manifold_layers),
+            'manifold_fusion': self.manifold_fusion,
+        }
+        print('MuSc: {}ms per image'.format(total_ms_per_image))
         if torch.cuda.is_available():
             print('MuSc GPU Memory: {:.2f} MB (Allocated), {:.2f} MB (Reserved)'.format(
                 torch.cuda.max_memory_allocated() / 1024 / 1024,
@@ -620,17 +800,25 @@ class MuSc():
             # Disable RsCIN to compare with raw image-level scores.
             scores_cls = ac_score
 
-        print('computing metrics...')
         pr_sp = np.array(scores_cls)
         gt_sp = np.array(gt_list)
         gt_px = torch.cat(img_masks, dim=0).numpy().astype(np.int32)
         pr_px = np.array(anomaly_maps)
-        image_metric, pixel_metric = compute_metrics(gt_sp, pr_sp, gt_px, pr_px)
-        auroc_sp, f1_sp, ap_sp = image_metric
-        auroc_px, f1_px, ap_px, aupro = pixel_metric
-        print(category)
-        print('image-level, auroc:{}, f1:{}, ap:{}'.format(auroc_sp*100, f1_sp*100, ap_sp*100))
-        print('pixel-level, auroc:{}, f1:{}, ap:{}, aupro:{}'.format(auroc_px*100, f1_px*100, ap_px*100, aupro*100))
+        if compute_metrics_output:
+            print('computing metrics...')
+            image_metric, pixel_metric = compute_metrics(
+                gt_sp, pr_sp, gt_px, pr_px
+            )
+            auroc_sp, f1_sp, ap_sp = image_metric
+            auroc_px, f1_px, ap_px, aupro = pixel_metric
+            print(category)
+            print('image-level, auroc:{}, f1:{}, ap:{}'.format(auroc_sp*100, f1_sp*100, ap_sp*100))
+            print('pixel-level, auroc:{}, f1:{}, ap:{}, aupro:{}'.format(auroc_px*100, f1_px*100, ap_px*100, aupro*100))
+        else:
+            # Prediction-only mode avoids repeatedly computing the expensive
+            # AUPRO metric in hyperparameter/oracle assembly loops. Existing
+            # callers retain the original behavior through the True default.
+            image_metric, pixel_metric = None, None
 
         if self.vis:
             print('visualization...')
@@ -642,7 +830,24 @@ class MuSc():
         else:
             mem_allocated, mem_reserved = 0, 0
 
-        return image_metric, pixel_metric, ((end_time_all-start_time_all)*1000/dataset_num), mem_allocated, mem_reserved
+        result = (
+            image_metric,
+            pixel_metric,
+            ((end_time_all-start_time_all)*1000/dataset_num),
+            mem_allocated,
+            mem_reserved,
+        )
+        if not return_predictions:
+            return result
+
+        prediction_data = {
+            "image_paths": list(image_path_list),
+            "image_labels": gt_sp,
+            "image_scores": pr_sp,
+            "pixel_masks": gt_px,
+            "pixel_scores": pr_px,
+        }
+        return result + (prediction_data,)
 
 
     def main(self):

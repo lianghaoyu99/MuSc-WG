@@ -250,13 +250,15 @@ def MSM(
     lambda_m=0.1,
     manifold_normalize=True,
     manifold_ref_chunk_size=2,
+    return_manifold_score=False,
 ):
     """Mutual scoring with optional in-module frequency-manifold regularization.
 
-    When frequency features are supplied, this function still returns a
-    single score map. The manifold disagreement is scaled to the robust range
-    of the original MSM distances before it is added. Consequently,
-    ``lambda_m=0`` exactly recovers the original MSM result.
+    By default, frequency features are fused into this layer's MSM result for
+    backward compatibility. With ``return_manifold_score=True``, the function
+    instead returns ``(base_msm, raw_manifold)`` so the caller can defer
+    calibration and fusion until after all MSM layers/radii have been averaged.
+    Consequently, ``lambda_m=0`` exactly recovers the original MSM result.
     """
     anomaly_scores_matrix = torch.tensor([]).double().to(device)
     for i in tqdm(range(Z.shape[0])):  # 遍历N个样本
@@ -264,6 +266,8 @@ def MSM(
         anomaly_scores_i = compute_scores_fast(Z, i, device, topmin_min, topmin_max, gamma, use_spot_weight).unsqueeze(0)  # 计算样本i的异常得分（欧氏距离矩阵）
         anomaly_scores_matrix = torch.cat((anomaly_scores_matrix, anomaly_scores_i.double()), dim=0)    # (N, B)
     if frequency_features is None or lambda_m == 0:
+        if return_manifold_score:
+            return anomaly_scores_matrix, None
         return anomaly_scores_matrix
 
     manifold_score = _integrated_manifold_score(
@@ -275,6 +279,9 @@ def MSM(
     manifold_score = _resize_patch_scores(
         manifold_score, anomaly_scores_matrix.shape[1]
     ).to(anomaly_scores_matrix.dtype)
+
+    if return_manifold_score:
+        return anomaly_scores_matrix, manifold_score
 
     if manifold_normalize:
         base_float = anomaly_scores_matrix.float()

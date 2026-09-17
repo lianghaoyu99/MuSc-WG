@@ -7,17 +7,24 @@ def cal_pro_score(masks, amaps, max_step=200, expect_fpr=0.3):
     binary_amaps = np.zeros_like(amaps, dtype=bool)
     min_th, max_th = amaps.min(), amaps.max()
     delta = (max_th - min_th) / max_step
+    # Connected components only depend on the ground-truth masks.  Computing
+    # them once keeps the metric identical while avoiding the same expensive
+    # labelling operation at every threshold.
+    regions = []
+    for image_index, mask in enumerate(masks):
+        for region in measure.regionprops(measure.label(mask)):
+            regions.append((image_index, region.coords, region.area))
+    inverse_masks = 1 - masks
+    inverse_pixel_count = inverse_masks.sum()
     pros, fprs, ths = [], [], []
     for th in np.arange(min_th, max_th, delta):
         binary_amaps[amaps <= th], binary_amaps[amaps > th] = 0, 1
-        pro = []
-        for binary_amap, mask in zip(binary_amaps, masks):
-            for region in measure.regionprops(measure.label(mask)):
-                tp_pixels = binary_amap[region.coords[:, 0], region.coords[:, 1]].sum()
-                pro.append(tp_pixels / region.area)
-        inverse_masks = 1 - masks
+        pro = [
+            binary_amaps[image_index][coords[:, 0], coords[:, 1]].sum() / area
+            for image_index, coords, area in regions
+        ]
         fp_pixels = np.logical_and(inverse_masks, binary_amaps).sum()
-        fpr = fp_pixels / inverse_masks.sum()
+        fpr = fp_pixels / inverse_pixel_count
         pros.append(np.array(pro).mean())
         fprs.append(fpr)
         ths.append(th)
@@ -55,4 +62,3 @@ def compute_metrics(gt_sp=None, pr_sp=None, gt_px=None, pr_px=None):
     pixel_metric = [auroc_px, f1_px, ap_px, aupro]
 
     return image_metric, pixel_metric
-    

@@ -1,6 +1,13 @@
 datasets:
-  dataset_name: 'mvtec_ad'  # choice ['mvtec_ad', 'miniled_ad', 'microled_ad']
+  dataset_name: 'mvtec_ad'  # choice ['mvtec_ad', 'visa', 'btad', 'miniled_ad', 'microled_ad']
   data_path: ./data/mvtec_anomaly_detection/  # ./data/mvtec_anomaly_detection/ ./data/miniled_AD/ ./data/microled_AD/
+  # Used by examples/manifold_grid_search.py when testing multiple datasets.
+  data_paths_by_dataset:
+    mvtec_ad: ./data/mvtec_anomaly_detection/
+    miniled_ad: ./data/miniled_AD/
+    microled_ad: ./data/microled_AD/
+    visa: ./data/visa/
+    btad: ./data/btad/
   class_name: 'ALL'  # 'ALL' 'transistor' 'miniled_TypeA_1' 'microled_TypeA_1'
   img_resize: 518  # 512 is for Patch 16 (32*16), for Patch 14 use 518 (37*14)
   divide_num: 1
@@ -23,27 +30,93 @@ testing:
   tsne_n_iter: 1000
   tsne_source: 'lnamd' # 'class' or 'lnamd'
   use_manifold: True  # Add cross-frequency neighbor-disagreement scoring
-  manifold_temperature: 0.5  # Soft reference preference temperature; lower is sharper
-  manifold_temperature_by_category:
-    bottle: 0.55
-    cable: 0.4
-    capsule: 0.5
-    carpet: 0.8
-    grid: 0.8
-    hazelnut: 0.6
-    leather: 1.0
-    metal_nut: 0.5
-    pill: 0.6
-    screw: 0.3
-    tile: 0.8
-    toothbrush: 0.5
-    transistor: 0.8
-    wood: 1.0
-    zipper: 0.3
+  # Global fallbacks. Dataset and category values below take precedence.
+  manifold_temperature: 0.5  # Soft preference temperature; lower is sharper
   lambda_m: 0.1  # Weight of the manifold score added to the original MuSc score
+  manifold_parameters_by_dataset:
+    mvtec_ad:
+      temperature: 0.5
+      lambda_m: 0.1
+      categories:
+        # Product-level winners from the completed MVTec coarse search. Each
+        # product uses one pair for all of its good and anomalous images.
+        # Temperature is only a placeholder when lambda_m is zero.
+        bottle: {temperature: 0.8, lambda_m: 0.5}
+        cable: {temperature: 0.8, lambda_m: 0.3}
+        capsule: {temperature: 0.8, lambda_m: 0.5}
+        carpet: {temperature: 0.5, lambda_m: 0.5}
+        grid: {temperature: 0.3, lambda_m: 0.3}
+        hazelnut: {temperature: 0.8, lambda_m: 0.3}
+        leather: {temperature: 0.3, lambda_m: 0.0}
+        metal_nut: {temperature: 0.3, lambda_m: 0.0}
+        pill: {temperature: 0.8, lambda_m: 0.5}
+        screw: {temperature: 0.3, lambda_m: 0.0}
+        tile: {temperature: 0.8, lambda_m: 0.5}
+        toothbrush: {temperature: 0.3, lambda_m: 0.0}
+        transistor: {temperature: 0.8, lambda_m: 0.5}
+        wood: {temperature: 0.5, lambda_m: 0.1}
+        zipper: {temperature: 0.3, lambda_m: 0.1}
+    miniled_ad:
+      temperature: 0.8
+      lambda_m: 0.05
+      categories:
+        miniled_TypeA_1: {temperature: 0.8, lambda_m: 0.05}
+        miniled_TypeA_2: {temperature: 0.8, lambda_m: 0.05}
+        miniled_TypeB_1: {temperature: 0.8, lambda_m: 0.05}
+        miniled_TypeB_2: {temperature: 0.8, lambda_m: 0.05}
+    microled_ad:
+      temperature: 0.8
+      lambda_m: 0.05
+      categories:
+        microled_TypeA_1: {temperature: 0.8, lambda_m: 0.05}
+        microled_TypeA_2: {temperature: 0.8, lambda_m: 0.05}
+        microled_TypeA_3: {temperature: 0.8, lambda_m: 0.05}
+        microled_TypeA_4: {temperature: 0.8, lambda_m: 0.05}
+        microled_TypeA_5: {temperature: 0.8, lambda_m: 0.05}
+        microled_TypeA_6: {temperature: 0.8, lambda_m: 0.05}
+        microled_TypeA_7: {temperature: 0.8, lambda_m: 0.05}
+        microled_TypeA_8: {temperature: 0.8, lambda_m: 0.05}
+        microled_TypeA_9: {temperature: 0.8, lambda_m: 0.05}
+        microled_TypeA_10: {temperature: 0.8, lambda_m: 0.05}
+        microled_TypeA_11: {temperature: 0.8, lambda_m: 0.05}
+        microled_TypeA_12: {temperature: 0.8, lambda_m: 0.05}
+        microled_TypeA_13: {temperature: 0.8, lambda_m: 0.05}
+        microled_TypeA_14: {temperature: 0.8, lambda_m: 0.05}
+        microled_TypeA_15: {temperature: 0.8, lambda_m: 0.05}
+        microled_TypeA_16: {temperature: 0.8, lambda_m: 0.05}
+        microled_TypeA_17: {temperature: 0.8, lambda_m: 0.05}
+        microled_TypeA_18: {temperature: 0.8, lambda_m: 0.05}
+        microled_TypeA_19: {temperature: 0.8, lambda_m: 0.05}
+        microled_TypeA_20: {temperature: 0.8, lambda_m: 0.05}
+    visa:
+      temperature: 0.5
+      lambda_m: 0.1
+      categories:
+        candle: {temperature: 0.5, lambda_m: 0.1}
+        capsules: {temperature: 0.5, lambda_m: 0.1}
+        cashew: {temperature: 0.5, lambda_m: 0.1}
+        chewinggum: {temperature: 0.5, lambda_m: 0.1}
+        fryum: {temperature: 0.5, lambda_m: 0.1}
+        macaroni1: {temperature: 0.5, lambda_m: 0.1}
+        macaroni2: {temperature: 0.5, lambda_m: 0.1}
+        pcb1: {temperature: 0.5, lambda_m: 0.1}
+        pcb2: {temperature: 0.5, lambda_m: 0.1}
+        pcb3: {temperature: 0.5, lambda_m: 0.1}
+        pcb4: {temperature: 0.5, lambda_m: 0.1}
+        pipe_fryum: {temperature: 0.5, lambda_m: 0.1}
+    btad:
+      temperature: 0.5
+      lambda_m: 0.1
+      categories:
+        '01': {temperature: 0.5, lambda_m: 0.1}
+        '02': {temperature: 0.5, lambda_m: 0.1}
+        '03': {temperature: 0.5, lambda_m: 0.1}
   manifold_level: 1  # Compare LL1 against LH1, HL1 and HH1
+  manifold_fusion: post_musc  # Fuse Mani only after the original 4x3 MSM average
   manifold_normalize: True  # Scale manifold disagreement to the robust range of each MSM score
-  manifold_layers: [0, 1, 2, 3]  # Integrate manifold scoring into all 4 layers for every r
+  # Run Mani once: layer index 0 is feature_layers[0] (ViT block 5), at r=1.
+  manifold_layers: [0]
+  manifold_r_list: [1]
   manifold_grid_size: 19  # Pool 37x37 band features before KNN, then upsample the score
   manifold_ref_chunk_size: 2  # Reference images processed together; lower saves GPU memory
 

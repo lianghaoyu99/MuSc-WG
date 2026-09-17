@@ -1,0 +1,165 @@
+datasets:
+  dataset_name: mvtec_ad
+  data_path: ./data/mvtec_anomaly_detection/
+  class_name: ALL
+  img_resize: 518
+  divide_num: 1
+
+models:
+  backbone_name: ViT-L-14-336
+  pretrained: openai
+  batch_size: 4
+  feature_layers: [5, 11, 17, 23]
+  r_list: [1, 3, 5]
+
+device: 0
+
+testing:
+  # Artifacts are written below this root using the same directory layout as
+  # musc_main.py: mvtec_ad/<backbone>/imagesize518/{results.xlsx,vis/...}
+  output_dir: output/mvtec_defect_oracle_calibrated
+  use_rscin: true
+  vis: true
+  vis_overlay: false
+  vis_type: single_norm
+  save_excel: true
+  vis_tsne: false
+
+  use_manifold: true
+  manifold_temperature: 0.5
+  lambda_m: 0.1
+  manifold_level: 1
+  manifold_fusion: post_musc
+  manifold_normalize: true
+  manifold_layers: [0]
+  manifold_r_list: [1]
+  manifold_grid_size: 19
+  manifold_ref_chunk_size: 2
+
+  # Put all defect-specific runs on the same lambda=0 score scale before
+  # stitching. Quantile anchors use only common good images and are estimated
+  # deterministically from at most one million normal pixels per run.
+  defect_oracle_calibration:
+    method: quantile
+    quantiles: 257
+    pixel_samples: 1000000
+    baseline_temperature: 0.5
+
+  # Runtime category values are set by the oracle entry script. This fallback
+  # keeps MuSc's normal parameter resolver valid.
+  manifold_parameters_by_dataset:
+    mvtec_ad:
+      temperature: 0.5
+      lambda_m: 0.1
+      categories: {}
+
+  # Values selected by output/mvtec_mani_coarse/best_by_defect.json using
+  # mean_pixel = mean(pixel AUROC, pixel AP, AUPRO).
+  # __all__ records the product-level search winner for traceability. The
+  # calibrated evaluator uses the shared lambda=0 baseline for all good images.
+  # lambda_m: 0 means original MuSc; tau is then a validated placeholder only.
+  manifold_parameters_by_defect:
+    mvtec_ad:
+      bottle:
+        __all__: {temperature: 0.8, lambda_m: 0.5}
+        broken_large: {temperature: 0.8, lambda_m: 0.5}
+        broken_small: {temperature: 0.8, lambda_m: 0.1}
+        contamination: {temperature: 0.8, lambda_m: 0.5}
+      cable:
+        __all__: {temperature: 0.8, lambda_m: 0.3}
+        bent_wire: {temperature: 0.3, lambda_m: 0.0}
+        cable_swap: {temperature: 0.5, lambda_m: 0.3}
+        combined: {temperature: 0.8, lambda_m: 0.5}
+        cut_inner_insulation: {temperature: 0.3, lambda_m: 0.1}
+        cut_outer_insulation: {temperature: 0.3, lambda_m: 0.5}
+        missing_cable: {temperature: 0.3, lambda_m: 0.0}
+        missing_wire: {temperature: 0.8, lambda_m: 0.1}
+        poke_insulation: {temperature: 0.3, lambda_m: 0.5}
+      capsule:
+        __all__: {temperature: 0.8, lambda_m: 0.5}
+        crack: {temperature: 0.3, lambda_m: 0.0}
+        faulty_imprint: {temperature: 0.8, lambda_m: 0.5}
+        poke: {temperature: 0.3, lambda_m: 0.0}
+        scratch: {temperature: 0.3, lambda_m: 0.1}
+        squeeze: {temperature: 0.5, lambda_m: 0.1}
+      carpet:
+        __all__: {temperature: 0.5, lambda_m: 0.5}
+        color: {temperature: 0.5, lambda_m: 0.5}
+        cut: {temperature: 0.5, lambda_m: 0.3}
+        hole: {temperature: 0.3, lambda_m: 0.3}
+        metal_contamination: {temperature: 0.3, lambda_m: 0.1}
+        thread: {temperature: 0.3, lambda_m: 0.5}
+      grid:
+        __all__: {temperature: 0.3, lambda_m: 0.3}
+        bent: {temperature: 0.3, lambda_m: 0.3}
+        broken: {temperature: 0.5, lambda_m: 0.5}
+        glue: {temperature: 0.3, lambda_m: 0.0}
+        metal_contamination: {temperature: 0.3, lambda_m: 0.0}
+        thread: {temperature: 0.3, lambda_m: 0.3}
+      hazelnut:
+        __all__: {temperature: 0.8, lambda_m: 0.3}
+        crack: {temperature: 0.8, lambda_m: 0.1}
+        cut: {temperature: 0.3, lambda_m: 0.0}
+        hole: {temperature: 0.3, lambda_m: 0.3}
+        print: {temperature: 0.8, lambda_m: 0.1}
+      leather:
+        __all__: {temperature: 0.3, lambda_m: 0.0}
+        color: {temperature: 0.8, lambda_m: 0.5}
+        cut: {temperature: 0.8, lambda_m: 0.3}
+        fold: {temperature: 0.5, lambda_m: 0.5}
+        glue: {temperature: 0.8, lambda_m: 0.5}
+        poke: {temperature: 0.3, lambda_m: 0.3}
+      metal_nut:
+        __all__: {temperature: 0.3, lambda_m: 0.0}
+        bent: {temperature: 0.8, lambda_m: 0.5}
+        color: {temperature: 0.3, lambda_m: 0.0}
+        flip: {temperature: 0.3, lambda_m: 0.0}
+        scratch: {temperature: 0.3, lambda_m: 0.0}
+      pill:
+        __all__: {temperature: 0.8, lambda_m: 0.5}
+        color: {temperature: 0.3, lambda_m: 0.0}
+        combined: {temperature: 0.3, lambda_m: 0.3}
+        contamination: {temperature: 0.3, lambda_m: 0.5}
+        crack: {temperature: 0.3, lambda_m: 0.0}
+        faulty_imprint: {temperature: 0.3, lambda_m: 0.5}
+        pill_type: {temperature: 0.3, lambda_m: 0.0}
+        scratch: {temperature: 0.8, lambda_m: 0.5}
+      screw:
+        __all__: {temperature: 0.3, lambda_m: 0.0}
+        manipulated_front: {temperature: 0.3, lambda_m: 0.0}
+        scratch_head: {temperature: 0.8, lambda_m: 0.3}
+        scratch_neck: {temperature: 0.3, lambda_m: 0.3}
+        thread_side: {temperature: 0.3, lambda_m: 0.0}
+        thread_top: {temperature: 0.3, lambda_m: 0.0}
+      tile:
+        __all__: {temperature: 0.8, lambda_m: 0.5}
+        crack: {temperature: 0.3, lambda_m: 0.5}
+        glue_strip: {temperature: 0.5, lambda_m: 0.5}
+        gray_stroke: {temperature: 0.8, lambda_m: 0.5}
+        oil: {temperature: 0.8, lambda_m: 0.5}
+        rough: {temperature: 0.8, lambda_m: 0.5}
+      toothbrush:
+        __all__: {temperature: 0.3, lambda_m: 0.0}
+        defective: {temperature: 0.3, lambda_m: 0.0}
+      transistor:
+        __all__: {temperature: 0.8, lambda_m: 0.5}
+        bent_lead: {temperature: 0.5, lambda_m: 0.5}
+        cut_lead: {temperature: 0.5, lambda_m: 0.5}
+        damaged_case: {temperature: 0.3, lambda_m: 0.0}
+        misplaced: {temperature: 0.8, lambda_m: 0.5}
+      wood:
+        __all__: {temperature: 0.5, lambda_m: 0.1}
+        color: {temperature: 0.3, lambda_m: 0.0}
+        combined: {temperature: 0.8, lambda_m: 0.3}
+        hole: {temperature: 0.3, lambda_m: 0.0}
+        liquid: {temperature: 0.8, lambda_m: 0.5}
+        scratch: {temperature: 0.3, lambda_m: 0.3}
+      zipper:
+        __all__: {temperature: 0.3, lambda_m: 0.1}
+        broken_teeth: {temperature: 0.3, lambda_m: 0.0}
+        combined: {temperature: 0.3, lambda_m: 0.3}
+        fabric_border: {temperature: 0.5, lambda_m: 0.5}
+        fabric_interior: {temperature: 0.5, lambda_m: 0.5}
+        rough: {temperature: 0.3, lambda_m: 0.0}
+        split_teeth: {temperature: 0.3, lambda_m: 0.1}
+        squeezed_teeth: {temperature: 0.3, lambda_m: 0.0}
